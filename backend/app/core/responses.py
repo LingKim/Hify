@@ -64,3 +64,17 @@ class PageResult[T](BaseModel):
             pageSize=page_size,
             totalPages=total_pages,
         )
+
+
+class PageParams(BaseModel):
+    """Standard pagination parameters for list endpoints."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, alias="pageSize", ge=1, le=100)
+
+    @property
+    def offset(self) -> int:
+        """Return the SQL offset for the current pagination window."""
+        return (self.page - 1) * self.page_size

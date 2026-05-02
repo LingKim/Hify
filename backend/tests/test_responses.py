@@ -1,4 +1,4 @@
-from app.core.responses import PageResult, Result
+from app.core.responses import PageParams, PageResult, Result
 
 
 def test_result_success_wraps_payload() -> None:
@@ -25,4 +25,14 @@ def test_page_result_computes_total_pages() -> None:
         "page": 2,
         "pageSize": 20,
         "totalPages": 2,
+    }
+
+
+def test_page_params_compute_offset_and_aliases() -> None:
+    params = PageParams(page=2, pageSize=20)
+
+    assert params.offset == 20
+    assert params.model_dump(by_alias=True) == {
+        "page": 2,
+        "pageSize": 20,
     }
