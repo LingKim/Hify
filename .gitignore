@@ -6,13 +6,12 @@ backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.venv/
 backend/dist/
-
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
 docs
 dist/
 .run/
-
+.superpowers
 *.log
 *.pid
