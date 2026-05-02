@@ -1,0 +1,86 @@
+import { AppBusinessError } from "@/shared/api/errors";
+import { request } from "@/shared/api";
+
+describe("request", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns the data field when the backend responds successfully", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 200,
+          message: "success",
+          data: { status: "ok" },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(
+      request<{ status: string }>({
+        request: "GET /health",
+      }),
+    ).resolves.toEqual({ status: "ok" });
+  });
+
+  it("throws a domain error when the backend returns a business error", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 4001,
+          message: "Agent 不存在",
+          data: null,
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(
+      request({
+        request: "GET /health",
+      }),
+    ).rejects.toBeInstanceOf(AppBusinessError);
+  });
+
+  it("replaces path params and appends query params", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 200,
+          message: "success",
+          data: { ok: true },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await request<{ ok: boolean }>({
+      request: "GET /users/{id}",
+      pathParams: {
+        id: "42",
+      },
+      query: {
+        page: 2,
+        keyword: "hify",
+      },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/v1/users/42?page=2&keyword=hify",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+});

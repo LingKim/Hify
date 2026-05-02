@@ -1,0 +1,479 @@
+:root {
+  color: oklch(26% 0.02 255);
+  background:
+    radial-gradient(circle at top left, oklch(96% 0.012 244) 0, transparent 26%),
+    linear-gradient(180deg, oklch(98% 0.006 250) 0%, oklch(95% 0.008 245) 100%);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="light"] {
+  --page-bg: oklch(96.9% 0.008 245);
+  --panel-bg: rgb(255 255 255 / 94%);
+  --panel-border: rgb(29 51 84 / 10%);
+  --panel-shadow: 0 20px 60px rgb(19 34 58 / 7%);
+  --text-strong: oklch(24% 0.02 255);
+  --text-body: oklch(42% 0.02 255);
+  --text-soft: oklch(56% 0.02 255);
+  --brand: oklch(44% 0.06 248);
+  --brand-strong: oklch(31% 0.05 249);
+  --brand-tint: oklch(92% 0.02 246);
+  --accent: oklch(58% 0.09 226);
+  --sider-bg: linear-gradient(180deg, oklch(23% 0.026 255) 0%, oklch(19% 0.022 255) 100%);
+  --sider-border: rgb(255 255 255 / 8%);
+  --top-nav-bg: rgb(255 255 255 / 84%);
+  --top-nav-border: rgb(29 51 84 / 10%);
+  --top-nav-item-hover: rgb(79 114 201 / 10%);
+  --top-nav-item-active: linear-gradient(
+    135deg,
+    rgb(101 138 223 / 18%) 0%,
+    rgb(58 90 157 / 28%) 100%
+  );
+  --drawer-surface: linear-gradient(
+    180deg,
+    rgb(250 252 255 / 100%) 0%,
+    rgb(245 248 253 / 100%) 100%
+  );
+}
+
+[data-theme="dark"] {
+  --page-bg: oklch(18% 0.018 255);
+  --panel-bg: rgb(20 28 39 / 92%);
+  --panel-border: rgb(149 170 216 / 10%);
+  --panel-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+  --text-strong: oklch(94% 0.012 255);
+  --text-body: oklch(78% 0.02 255);
+  --text-soft: oklch(66% 0.018 255);
+  --brand: oklch(68% 0.07 248);
+  --brand-strong: oklch(58% 0.06 249);
+  --brand-tint: rgb(84 109 181 / 18%);
+  --accent: oklch(74% 0.08 228);
+  --sider-bg: linear-gradient(180deg, oklch(20% 0.02 255) 0%, oklch(15% 0.018 255) 100%);
+  --sider-border: rgb(255 255 255 / 6%);
+  --top-nav-bg: rgb(19 27 39 / 88%);
+  --top-nav-border: rgb(149 170 216 / 10%);
+  --top-nav-item-hover: rgb(127 152 221 / 14%);
+  --top-nav-item-active: linear-gradient(
+    135deg,
+    rgb(127 152 221 / 26%) 0%,
+    rgb(85 110 179 / 32%) 100%
+  );
+  --drawer-surface: linear-gradient(180deg, rgb(21 29 41 / 100%) 0%, rgb(17 24 34 / 100%) 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  color: var(--text-body);
+  background: var(--page-bg);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.page-heading {
+  padding: 6px 32px 0;
+}
+
+.app-sider.ant-layout-sider {
+  position: relative;
+  overflow: hidden;
+  background: var(--sider-bg) !important;
+  border-inline-end: 1px solid var(--sider-border);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 2%);
+}
+
+.app-sider.ant-layout-sider::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgb(99 155 255 / 16%) 0, transparent 34%),
+    linear-gradient(180deg, transparent 0%, rgb(255 255 255 / 2%) 100%);
+  pointer-events: none;
+  content: "";
+}
+
+.brand-panel {
+  position: relative;
+  z-index: 1;
+  padding: 22px 18px 16px;
+}
+
+.brand-panel-compact {
+  padding: 0;
+}
+
+.brand-panel-collapsed {
+  padding-inline: 10px;
+}
+
+.brand-stack {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.brand-stack-collapsed {
+  justify-content: center;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 16px;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgb(122 162 255 / 20%) 0%, rgb(77 117 211 / 42%) 100%),
+    rgb(255 255 255 / 3%);
+  font-size: 20px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.brand-title.ant-typography {
+  margin: 0;
+  color: rgb(244 247 255 / 96%);
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+
+.brand-subtitle.ant-typography {
+  color: rgb(211 220 240 / 72%);
+  font-size: 0.79rem;
+}
+
+.app-nav.ant-menu.ant-menu-root {
+  position: relative;
+  z-index: 1;
+  padding-top: 6px;
+  background: transparent;
+  color: rgb(219 227 245 / 74%);
+}
+
+.app-nav.ant-menu-inline .ant-menu-item {
+  width: calc(100% - 16px);
+  height: 44px;
+  margin-inline: 8px;
+  margin-block: 6px;
+  border-radius: 14px;
+  line-height: 44px;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.app-nav.ant-menu-inline .ant-menu-item .ant-menu-title-content {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.app-nav.ant-menu-light.ant-menu-inline .ant-menu-item-selected {
+  color: #fff;
+  background: linear-gradient(135deg, rgb(101 138 223 / 28%) 0%, rgb(58 90 157 / 38%) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 6%),
+    0 10px 28px rgb(0 0 0 / 18%);
+}
+
+.app-nav.ant-menu-light.ant-menu-inline .ant-menu-item:not(.ant-menu-item-selected):hover {
+  color: rgb(241 246 255 / 92%);
+  background: rgb(255 255 255 / 5%);
+  transform: translateX(2px);
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: auto;
+  padding: 28px 32px 12px;
+  background: transparent;
+}
+
+.app-header-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--top-nav-border);
+  background: var(--top-nav-bg);
+  backdrop-filter: blur(20px);
+}
+
+.top-nav-shell {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  width: 100%;
+  align-items: center;
+}
+
+.top-nav-menu {
+  min-width: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.settings-trigger.ant-btn {
+  border-color: rgb(29 51 84 / 12%);
+  color: var(--text-body);
+  background: rgb(255 255 255 / 82%);
+}
+
+.app-nav-top.ant-menu {
+  border-bottom: 0;
+  background: transparent;
+}
+
+.app-nav-top.ant-menu .ant-menu-item {
+  margin-inline: 6px;
+  border-radius: 12px;
+}
+
+.app-nav-top.ant-menu .ant-menu-item-selected {
+  color: var(--text-strong);
+  background: var(--top-nav-item-active);
+}
+
+.app-nav-top.ant-menu .ant-menu-item:hover {
+  background: var(--top-nav-item-hover);
+}
+
+.header-kicker.ant-typography {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.header-title.ant-typography {
+  margin: 4px 0 0;
+  color: var(--text-strong);
+  font-size: clamp(1.6rem, 2vw, 2.2rem);
+}
+
+.app-content {
+  padding: 0 32px 32px;
+}
+
+.app-content .ant-breadcrumb {
+  color: var(--text-soft);
+}
+
+.app-content .ant-breadcrumb-link {
+  color: var(--text-soft);
+}
+
+.app-content-panel {
+  margin-top: 16px;
+  padding: 28px;
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.hero-card {
+  height: 100%;
+  border-color: rgb(29 51 84 / 8%);
+  box-shadow: none;
+}
+
+.hero-card.ant-card .ant-card-body {
+  padding: 22px;
+}
+
+.hero-card .ant-typography {
+  color: var(--text-strong);
+}
+
+.ant-card {
+  border-radius: 20px;
+  border-color: rgb(29 51 84 / 8%);
+  box-shadow: none;
+}
+
+.ant-card .ant-card-head {
+  border-bottom-color: rgb(29 51 84 / 8%);
+}
+
+.ant-card .ant-card-head-title,
+.ant-card .ant-card-extra,
+.ant-card .ant-card-body .ant-typography {
+  color: var(--text-body);
+}
+
+.ant-btn-primary {
+  border-color: transparent;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--brand) 92%, white 8%) 0%,
+    color-mix(in oklab, var(--brand-strong) 88%, black 12%) 100%
+  );
+  box-shadow: 0 12px 24px rgb(50 79 139 / 18%);
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--brand) 88%, white 12%) 0%,
+    color-mix(in oklab, var(--brand-strong) 84%, black 16%) 100%
+  ) !important;
+}
+
+.ant-btn-default {
+  border-color: rgb(29 51 84 / 12%);
+  color: var(--text-body);
+  background: rgb(255 255 255 / 82%);
+}
+
+.preferences-drawer .ant-drawer-content,
+.preferences-drawer .ant-drawer-header {
+  background: var(--drawer-surface);
+}
+
+.preferences-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.preferences-intro,
+.preferences-section,
+.preferences-extension {
+  padding: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  background: color-mix(in oklab, var(--panel-bg) 92%, transparent 8%);
+}
+
+.preferences-intro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.preferences-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: var(--brand-strong);
+  background: var(--brand-tint);
+}
+
+.preferences-field + .preferences-field {
+  margin-top: 18px;
+}
+
+.ant-tag.ant-tag-green {
+  color: var(--brand-strong);
+  border-color: rgb(103 142 218 / 18%);
+  background: var(--brand-tint);
+}
+
+.status-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-meta {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.status-item {
+  padding: 16px;
+  border: 1px solid rgb(29 51 84 / 8%);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgb(246 249 253 / 100%) 0%, rgb(241 245 251 / 100%) 100%);
+}
+
+.status-item-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.status-item .ant-typography,
+.status-item .ant-tag {
+  color: var(--text-strong);
+}
+
+.not-found {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding-inline: 20px;
+  }
+
+  .app-content {
+    padding-inline: 20px;
+  }
+
+  .app-content-panel {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .top-nav-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .page-heading {
+    padding-inline: 20px;
+  }
+}

@@ -1,0 +1,15 @@
+"""LLM module error codes."""
+
+from enum import IntEnum
+
+
+class LlmErrorCode(IntEnum):
+    """LLM error codes."""
+
+    MODEL_NOT_FOUND = 3001
+    PROVIDER_CONNECTION_FAILED = 3002
+    PROVIDER_AUTH_FAILED = 3003
+    REQUEST_TIMEOUT = 3004
+    PROVIDER_RATE_LIMITED = 3005
+    ALL_PROVIDERS_UNAVAILABLE = 3006
+    INVALID_MODEL_PARAMETERS = 3007
