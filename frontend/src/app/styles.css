@@ -25,14 +25,8 @@
   --accent: oklch(58% 0.09 226);
   --sider-bg: linear-gradient(180deg, oklch(23% 0.026 255) 0%, oklch(19% 0.022 255) 100%);
   --sider-border: rgb(255 255 255 / 8%);
-  --top-nav-bg: rgb(255 255 255 / 84%);
-  --top-nav-border: rgb(29 51 84 / 10%);
-  --top-nav-item-hover: rgb(79 114 201 / 10%);
-  --top-nav-item-active: linear-gradient(
-    135deg,
-    rgb(101 138 223 / 18%) 0%,
-    rgb(58 90 157 / 28%) 100%
-  );
+  --tag-bg: rgb(29 51 84 / 4%);
+  --tag-active-bg: rgb(255 255 255 / 92%);
   --drawer-surface: linear-gradient(
     180deg,
     rgb(250 252 255 / 100%) 0%,
@@ -54,14 +48,8 @@
   --accent: oklch(74% 0.08 228);
   --sider-bg: linear-gradient(180deg, oklch(20% 0.02 255) 0%, oklch(15% 0.018 255) 100%);
   --sider-border: rgb(255 255 255 / 6%);
-  --top-nav-bg: rgb(19 27 39 / 88%);
-  --top-nav-border: rgb(149 170 216 / 10%);
-  --top-nav-item-hover: rgb(127 152 221 / 14%);
-  --top-nav-item-active: linear-gradient(
-    135deg,
-    rgb(127 152 221 / 26%) 0%,
-    rgb(85 110 179 / 32%) 100%
-  );
+  --tag-bg: rgb(149 170 216 / 6%);
+  --tag-active-bg: rgb(20 28 39 / 92%);
   --drawer-surface: linear-gradient(180deg, rgb(21 29 41 / 100%) 0%, rgb(17 24 34 / 100%) 100%);
 }
 
@@ -82,17 +70,19 @@ body {
   background: var(--page-bg);
 }
 
+/* ─── Shell ─── */
+
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: transparent;
 }
 
-.page-heading {
-  padding: 6px 32px 0;
-}
+/* ─── Sider ─── */
 
 .app-sider.ant-layout-sider {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--sider-bg) !important;
   border-inline-end: 1px solid var(--sider-border);
@@ -109,14 +99,47 @@ body {
   content: "";
 }
 
-.brand-panel {
+.sider-body {
   position: relative;
   z-index: 1;
-  padding: 22px 18px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.brand-panel-compact {
-  padding: 0;
+.sider-footer {
+  position: relative;
+  z-index: 1;
+  padding: 12px 16px 18px;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+}
+
+.sider-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 10px;
+  color: rgb(219 227 245 / 60%);
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 160ms ease;
+}
+
+.sider-toggle:hover {
+  color: rgb(255 255 255 / 90%);
+  background: rgb(255 255 255 / 6%);
+}
+
+/* ─── Brand ─── */
+
+.brand-panel {
+  padding: 22px 18px 16px;
 }
 
 .brand-panel-collapsed {
@@ -165,9 +188,9 @@ body {
   font-size: 0.79rem;
 }
 
+/* ─── Sider Menu ─── */
+
 .app-nav.ant-menu.ant-menu-root {
-  position: relative;
-  z-index: 1;
   padding-top: 6px;
   background: transparent;
   color: rgb(219 227 245 / 74%);
@@ -205,102 +228,154 @@ body {
   transform: translateX(2px);
 }
 
-.app-header {
+/* ─── Main Area ─── */
+
+.app-main.ant-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+/* ─── Tag Views ─── */
+
+.tag-views {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  flex: 0 0 42px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--tag-bg);
+}
+
+.tag-views-scroll {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tag-views-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tag-item {
+  position: relative;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+  user-select: none;
+}
+
+.tag-item:hover {
+  color: var(--text-body);
+  background: rgb(128 128 128 / 6%);
+}
+
+.tag-item-active {
+  color: var(--brand-strong);
+  background: var(--tag-active-bg);
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+}
+
+.tag-item-active:hover {
+  color: var(--brand-strong);
+  background: var(--tag-active-bg);
+}
+
+.tag-item-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
+}
+
+.tag-item:hover .tag-item-close,
+.tag-item-active .tag-item-close {
+  opacity: 0.5;
+}
+
+.tag-item-close:hover {
+  opacity: 1 !important;
+  background: rgb(128 128 128 / 14%);
+}
+
+/* ─── Tool Bar ─── */
+
+.tool-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: auto;
-  padding: 28px 32px 12px;
-  background: transparent;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--panel-border);
 }
 
-.app-header-top {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--top-nav-border);
-  background: var(--top-nav-bg);
-  backdrop-filter: blur(20px);
+.tool-bar .ant-breadcrumb {
+  color: var(--text-soft);
 }
 
-.top-nav-shell {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 20px;
-  width: 100%;
-  align-items: center;
+.tool-bar .ant-breadcrumb-link {
+  color: var(--text-soft);
 }
 
-.top-nav-menu {
-  min-width: 0;
-}
-
-.header-actions {
+.tool-bar-actions {
   display: flex;
-  gap: 12px;
+  gap: 4px;
   align-items: center;
 }
 
-.settings-trigger.ant-btn {
-  border-color: rgb(29 51 84 / 12%);
+.tool-bar-actions .ant-btn {
+  color: var(--text-soft);
+}
+
+.tool-bar-actions .ant-btn:hover {
   color: var(--text-body);
-  background: rgb(255 255 255 / 82%);
 }
 
-.app-nav-top.ant-menu {
-  border-bottom: 0;
-  background: transparent;
-}
-
-.app-nav-top.ant-menu .ant-menu-item {
-  margin-inline: 6px;
-  border-radius: 12px;
-}
-
-.app-nav-top.ant-menu .ant-menu-item-selected {
-  color: var(--text-strong);
-  background: var(--top-nav-item-active);
-}
-
-.app-nav-top.ant-menu .ant-menu-item:hover {
-  background: var(--top-nav-item-hover);
-}
-
-.header-kicker.ant-typography {
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-
-.header-title.ant-typography {
-  margin: 4px 0 0;
-  color: var(--text-strong);
-  font-size: clamp(1.6rem, 2vw, 2.2rem);
-}
+/* ─── Content ─── */
 
 .app-content {
-  padding: 0 32px 32px;
-}
-
-.app-content .ant-breadcrumb {
-  color: var(--text-soft);
-}
-
-.app-content .ant-breadcrumb-link {
-  color: var(--text-soft);
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 24px;
 }
 
 .app-content-panel {
-  margin-top: 16px;
   padding: 28px;
   border: 1px solid var(--panel-border);
   border-radius: 24px;
   background: var(--panel-bg);
   box-shadow: var(--panel-shadow);
 }
+
+/* ─── Page Components ─── */
 
 .page-stack {
   display: flex;
@@ -327,6 +402,8 @@ body {
 .hero-card .ant-typography {
   color: var(--text-strong);
 }
+
+/* ─── Ant Design Overrides ─── */
 
 .ant-card {
   border-radius: 20px;
@@ -368,6 +445,8 @@ body {
   background: rgb(255 255 255 / 82%);
 }
 
+/* ─── Preferences Drawer ─── */
+
 .preferences-drawer .ant-drawer-content,
 .preferences-drawer .ant-drawer-header {
   background: var(--drawer-surface);
@@ -408,6 +487,8 @@ body {
 .preferences-field + .preferences-field {
   margin-top: 18px;
 }
+
+/* ─── Misc ─── */
 
 .ant-tag.ant-tag-green {
   color: var(--brand-strong);
@@ -453,27 +534,12 @@ body {
 }
 
 @media (max-width: 768px) {
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    padding-inline: 20px;
-  }
-
   .app-content {
-    padding-inline: 20px;
+    padding: 16px;
   }
 
   .app-content-panel {
     padding: 20px;
     border-radius: 20px;
-  }
-
-  .top-nav-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .page-heading {
-    padding-inline: 20px;
   }
 }

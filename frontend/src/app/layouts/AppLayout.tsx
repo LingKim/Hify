@@ -4,13 +4,16 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   RocketOutlined,
-  SettingOutlined,
 } from "@ant-design/icons";
-import { Breadcrumb, Button, Layout, Menu, Space, Tooltip, Typography } from "antd";
+import { Layout, Menu, Space, Typography } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
+import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { PreferencesDrawer } from "@/app/preferences/PreferencesDrawer";
 import { useAppStore } from "@/shared/stores/app";
+import { useTagsStore } from "@/shared/stores/tags";
+import { TagViews } from "./TagViews";
+import { ToolBar } from "./ToolBar";
 
 const navigationItems: ItemType[] = [
   {
@@ -25,110 +28,62 @@ const navigationItems: ItemType[] = [
   },
 ];
 
-function buildBreadcrumb(pathname: string): { title: string }[] {
-  if (pathname === "/playground/api-preview") {
-    return [{ title: "Playground" }, { title: "联调预览" }];
-  }
-
-  if (pathname === "/") {
-    return [{ title: "首页" }];
-  }
-
-  return [{ title: "未知页面" }];
-}
+const routeTitleMap: Record<string, string> = {
+  "/": "首页",
+  "/playground/api-preview": "联调预览",
+};
 
 export function AppLayout(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const siderCollapsed = useAppStore((state) => state.siderCollapsed);
-  const toggleSiderCollapsed = useAppStore((state) => state.toggleSiderCollapsed);
-  const navigationMode = useAppStore((state) => state.navigationMode);
-  const openPreferencesDrawer = useAppStore((state) => state.openPreferencesDrawer);
+  const siderCollapsed = useAppStore((s) => s.siderCollapsed);
+  const toggleSiderCollapsed = useAppStore((s) => s.toggleSiderCollapsed);
+  const addTab = useTagsStore((s) => s.addTab);
 
-  const navigationMenu = (
-    <Menu
-      className={`app-nav${navigationMode === "top" ? " app-nav-top" : ""}`}
-      mode={navigationMode === "top" ? "horizontal" : "inline"}
-      selectedKeys={[location.pathname]}
-      items={navigationItems}
-      onClick={({ key }) => {
-        navigate(key);
-      }}
-    />
-  );
-
-  const topBarActions = (
-    <div className="header-actions">
-      {navigationMode === "side" ? (
-        <Button
-          type="primary"
-          icon={siderCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={() => {
-            toggleSiderCollapsed();
-          }}
-        >
-          {siderCollapsed ? "展开侧栏" : "收起侧栏"}
-        </Button>
-      ) : null}
-      <Tooltip title="界面设置">
-        <Button
-          aria-label="打开界面设置"
-          className="settings-trigger"
-          icon={<SettingOutlined />}
-          onClick={() => {
-            openPreferencesDrawer();
-          }}
-        />
-      </Tooltip>
-    </div>
-  );
+  useEffect(() => {
+    const title = routeTitleMap[location.pathname] ?? "未知页面";
+    addTab({
+      key: location.pathname,
+      title,
+      closable: location.pathname !== "/",
+    });
+  }, [location.pathname, addTab]);
 
   return (
     <Layout className="app-shell">
-      {navigationMode === "side" ? (
-        <Layout.Sider
-          className="app-sider"
-          collapsed={siderCollapsed}
-          collapsedWidth={88}
-          width={248}
-        >
+      <Layout.Sider
+        className="app-sider"
+        collapsed={siderCollapsed}
+        collapsedWidth={88}
+        width={248}
+      >
+        <div className="sider-body">
           <BrandBlock collapsed={siderCollapsed} />
-          {navigationMenu}
-        </Layout.Sider>
-      ) : null}
-      <Layout>
-        <Layout.Header className={`app-header${navigationMode === "top" ? " app-header-top" : ""}`}>
-          {navigationMode === "top" ? (
-            <div className="top-nav-shell">
-              <BrandBlock collapsed={false} compact />
-              <div className="top-nav-menu">{navigationMenu}</div>
-              {topBarActions}
-            </div>
-          ) : (
-            <>
-              <div>
-                <Typography.Text className="header-kicker">Hify Frontend Scaffold</Typography.Text>
-                <Typography.Title className="header-title" level={3}>
-                  面向长期演进的前端底座
-                </Typography.Title>
-              </div>
-              {topBarActions}
-            </>
-          )}
-        </Layout.Header>
-        {navigationMode === "top" ? (
-          <div className="page-heading">
-            <Typography.Text className="header-kicker">Hify Frontend Scaffold</Typography.Text>
-            <Typography.Title className="header-title" level={3}>
-              面向长期演进的前端底座
-            </Typography.Title>
-          </div>
-        ) : null}
+          <Menu
+            className="app-nav"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={navigationItems}
+            onClick={({ key }) => {
+              navigate(key);
+            }}
+          />
+        </div>
+        <div className="sider-footer">
+          <button
+            className="sider-toggle"
+            onClick={() => toggleSiderCollapsed()}
+            aria-label={siderCollapsed ? "展开侧栏" : "收起侧栏"}
+          >
+            {siderCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          </button>
+        </div>
+      </Layout.Sider>
+      <Layout className="app-main">
+        <TagViews />
+        <ToolBar />
         <Layout.Content className="app-content">
-          <Breadcrumb items={buildBreadcrumb(location.pathname)} />
-          <div className="app-content-panel">
-            <Outlet />
-          </div>
+          <Outlet />
         </Layout.Content>
       </Layout>
       <PreferencesDrawer />
@@ -136,18 +91,9 @@ export function AppLayout(): JSX.Element {
   );
 }
 
-interface BrandBlockProps {
-  collapsed: boolean;
-  compact?: boolean;
-}
-
-function BrandBlock({ collapsed, compact = false }: BrandBlockProps): JSX.Element {
+function BrandBlock({ collapsed }: { collapsed: boolean }): JSX.Element {
   return (
-    <div
-      className={`brand-panel${collapsed ? " brand-panel-collapsed" : ""}${
-        compact ? " brand-panel-compact" : ""
-      }`}
-    >
+    <div className={`brand-panel${collapsed ? " brand-panel-collapsed" : ""}`}>
       <Space
         align="center"
         size={12}
@@ -161,7 +107,9 @@ function BrandBlock({ collapsed, compact = false }: BrandBlockProps): JSX.Elemen
             <Typography.Title className="brand-title" level={4}>
               Hify
             </Typography.Title>
-            <Typography.Text className="brand-subtitle">AI Agent 开发平台</Typography.Text>
+            <Typography.Text className="brand-subtitle">
+              AI Agent 开发平台
+            </Typography.Text>
           </div>
         ) : null}
       </Space>

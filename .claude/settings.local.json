@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm build *)"
     ]
   }
 }
