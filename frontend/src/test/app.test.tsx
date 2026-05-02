@@ -69,6 +69,24 @@ describe("AppRouter", () => {
     expect(screen.getByRole("heading", { name: "后端联调预览" })).toBeInTheDocument();
   });
 
+  it("renders the common components page on the playground route", () => {
+    render(
+      <MemoryRouter
+        initialEntries={["/playground/common-components"]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppProviders>
+          <AppRouter />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("heading", { name: "公共组件演示" })).toBeInTheDocument();
+  });
+
   it("renders the not found page for an unknown route", () => {
     render(
       <MemoryRouter

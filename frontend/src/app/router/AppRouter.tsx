@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/app/layouts/AppLayout";
 import { HomePage } from "@/pages/home/HomePage";
 import { NotFoundPage } from "@/pages/not-found/NotFoundPage";
+import { CommonComponentsPage } from "@/pages/playground-common-components/CommonComponentsPage";
 import { ApiPreviewPage } from "@/pages/playground-api-preview/ApiPreviewPage";
 
 export function AppRouter(): JSX.Element {
@@ -10,6 +11,7 @@ export function AppRouter(): JSX.Element {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="/playground/api-preview" element={<ApiPreviewPage />} />
+        <Route path="/playground/common-components" element={<CommonComponentsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

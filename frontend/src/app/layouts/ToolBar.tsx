@@ -7,6 +7,9 @@ function buildBreadcrumb(pathname: string): { title: string }[] {
   if (pathname === "/playground/api-preview") {
     return [{ title: "Playground" }, { title: "联调预览" }];
   }
+  if (pathname === "/playground/common-components") {
+    return [{ title: "Playground" }, { title: "公共组件" }];
+  }
   if (pathname === "/") {
     return [{ title: "首页" }];
   }
@@ -26,6 +29,7 @@ export function ToolBar(): JSX.Element {
             type="text"
             size="small"
             icon={<SettingOutlined />}
+            aria-label="打开界面设置"
             onClick={() => openPreferencesDrawer()}
           />
         </Tooltip>

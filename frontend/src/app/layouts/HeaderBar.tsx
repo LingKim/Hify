@@ -19,7 +19,7 @@ export function HeaderBar(): JSX.Element {
         menu={{ items: userMenuItems }}
         trigger={["hover"]}
         placement="bottomRight"
-        dropdownRender={(menu) => (
+        popupRender={(menu) => (
           <div className="user-dropdown">
             <div className="user-dropdown-header">
               <Avatar

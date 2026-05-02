@@ -1,5 +1,6 @@
 import {
   ApiOutlined,
+  AppstoreOutlined,
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -27,11 +28,17 @@ const navigationItems: ItemType[] = [
     icon: <ApiOutlined />,
     label: "联调预览",
   },
+  {
+    key: "/playground/common-components",
+    icon: <AppstoreOutlined />,
+    label: "公共组件",
+  },
 ];
 
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
   "/playground/api-preview": "联调预览",
+  "/playground/common-components": "公共组件演示",
 };
 
 export function AppLayout(): JSX.Element {
