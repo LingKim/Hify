@@ -4,6 +4,9 @@ import { useLocation } from "react-router-dom";
 import { useAppStore } from "@/shared/stores/app";
 
 function buildBreadcrumb(pathname: string): { title: string }[] {
+  if (pathname === "/providers") {
+    return [{ title: "运营后台" }, { title: "模型提供商管理" }];
+  }
   if (pathname === "/playground/api-preview") {
     return [{ title: "Playground" }, { title: "联调预览" }];
   }

@@ -1,5 +1,19 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { App, Button, Col, DatePicker, Form, Input, Modal, Row, Select, Space, Spin, Switch } from "antd";
+import {
+  Alert,
+  App,
+  Button,
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Select,
+  Space,
+  Spin,
+  Switch,
+} from "antd";
 import { FullscreenExitOutlined, FullscreenOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, type QueryKey } from "@tanstack/react-query";
 import type { ColProps, RowProps } from "antd";
@@ -298,6 +312,26 @@ export function FormDialog<TValues extends object, TDetail = TValues>({
         </div>
       ) : null}
 
+      {primaryMutation.isError ? (
+        <Alert
+          showIcon
+          type="error"
+          className="form-dialog-submit-error"
+          message="提交失败"
+          description={getErrorMessage(primaryMutation.error)}
+        />
+      ) : null}
+
+      {!primaryMutation.isError && secondaryMutation.isError ? (
+        <Alert
+          showIcon
+          type="error"
+          className="form-dialog-submit-error"
+          message="操作失败"
+          description={getErrorMessage(secondaryMutation.error)}
+        />
+      ) : null}
+
       <Spin spinning={detailQuery.isFetching}>
         <Form form={form} layout={layout} disabled={disabled}>
           <Row {...resolvedRowProps}>
@@ -327,6 +361,9 @@ export function FormDialog<TValues extends object, TDetail = TValues>({
                         (value) => {
                           form.setFieldValue(field.key as never, value);
                         },
+                        (key, value) => {
+                          form.setFieldValue(key as never, value);
+                        },
                       )}
                     </Form.Item>
                   </Col>
@@ -345,6 +382,7 @@ function renderField(
   formValues: Record<string, unknown>,
   mode: FormDialogMode,
   onCustomChange: (value: unknown) => void,
+  setFieldValue: (key: string, value: unknown) => void,
 ): ReactNode {
   if (field.type === "input") {
     return (
@@ -398,6 +436,7 @@ function renderField(
   return field.render({
     value: formValues[field.key],
     onChange: onCustomChange,
+    setFieldValue,
     formValues,
     mode,
   });

@@ -50,6 +50,43 @@ describe("request", () => {
     ).rejects.toBeInstanceOf(AppBusinessError);
   });
 
+  it("accepts 201 responses as success", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 201,
+          message: "success",
+          data: { id: 1 },
+        }),
+        {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(
+      request<{ id: number }>({
+        request: "POST /providers",
+        body: { name: "OpenAI" },
+      }),
+    ).resolves.toEqual({ id: 1 });
+  });
+
+  it("accepts 204 responses without a JSON body", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 204,
+      }),
+    );
+
+    await expect(
+      request<void>({
+        request: "DELETE /providers/1",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("replaces path params and appends query params", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

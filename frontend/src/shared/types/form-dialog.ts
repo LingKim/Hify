@@ -54,6 +54,7 @@ export interface FormDialogSwitchField extends FormDialogFieldBase {
 export interface FormDialogCustomFieldRenderContext {
   value: unknown;
   onChange: (value: unknown) => void;
+  setFieldValue: (key: string, value: unknown) => void;
   formValues: Record<string, unknown>;
   mode: FormDialogMode;
 }

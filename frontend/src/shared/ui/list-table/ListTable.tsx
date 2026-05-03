@@ -46,6 +46,7 @@ export interface ListTableProps<TData, TQuery extends object> {
   toolbar?: ReactNode;
   emptyText?: ReactNode;
   enabled?: boolean;
+  scroll?: TableProps<TData>['scroll'];
 }
 
 type DraftQueryValues = Record<string, unknown>;
@@ -180,6 +181,7 @@ function InnerListTable<TData, TQuery extends object>(
     toolbar,
     emptyText,
     enabled = true,
+    scroll,
   }: ListTableProps<TData, TQuery>,
   ref: React.ForwardedRef<ListTableRef<TData>>,
 ): JSX.Element {
@@ -194,6 +196,12 @@ function InnerListTable<TData, TQuery extends object>(
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [selectionState, setSelectionState] = useState(clearableSelectionState<TData>());
+  const effectiveScroll =
+    scroll === undefined
+      ? { x: "max-content" }
+      : scroll.x === undefined
+        ? { ...scroll, x: "max-content" }
+        : scroll;
 
   const effectivePage = showPagination ? page : 1;
   const requestParams = {
@@ -312,7 +320,8 @@ function InnerListTable<TData, TQuery extends object>(
       title: "操作",
       key: "__actions__",
       align: "right",
-      width: 180,
+      fixed: "right",
+      width: 140,
       render: (_value: unknown, record: TData, index: number) => {
         const content = tableActions(record, index);
 
@@ -455,17 +464,20 @@ function InnerListTable<TData, TQuery extends object>(
       ) : null}
 
       <div className="list-table-panel">
-        <Table<TData>
-          rowKey={rowKey}
-          columns={normalizedColumns}
+        <div className="list-table-table-wrap">
+          <Table<TData>
+            rowKey={rowKey}
+            columns={normalizedColumns}
           dataSource={query.data?.list ?? []}
           rowSelection={rowSelection}
           loading={query.isLoading || query.isFetching}
           pagination={false}
+          scroll={effectiveScroll}
           locale={{
             emptyText: emptyText ?? "暂无数据",
           }}
-        />
+          />
+        </div>
 
         {showPagination ? (
           <div className="list-table-pagination">

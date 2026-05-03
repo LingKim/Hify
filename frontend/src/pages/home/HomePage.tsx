@@ -24,6 +24,13 @@ export function HomePage(): JSX.Element {
         <Space wrap>
           <Button
             type="primary"
+            onClick={() => {
+              navigate("/providers");
+            }}
+          >
+            进入模型提供商管理
+          </Button>
+          <Button
             icon={<ArrowRightOutlined />}
             onClick={() => {
               navigate("/playground/api-preview");

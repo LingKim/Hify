@@ -7,6 +7,22 @@ Hify 当前采用前后端分离结构：
 
 ## 本地开发
 
+### 后端环境配置
+
+后端启动前会按顺序自动读取这些文件中的环境变量：
+
+- `backend/.env`
+- `backend/.env.local`
+- `backend/.env.development`
+- `backend/.env.development.local`
+
+本地开发建议先参考 `backend/.env.example`，当前仓库已经补了一个可直接用于本机 Docker PostgreSQL / Redis 的 `backend/.env.development`。
+
+默认本地开发配置为：
+
+- PostgreSQL：`postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/hify`
+- Redis：`redis://127.0.0.1:6379/0`
+
 ### 一键启动
 
 在仓库根目录执行：
@@ -66,6 +82,14 @@ make package
 cd frontend
 pnpm install
 pnpm dev
+```
+
+### 单独启动后端
+
+```bash
+cd backend
+uv run alembic upgrade head
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### 前端质量工具

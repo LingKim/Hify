@@ -139,6 +139,10 @@ export async function request<T>(descriptor: RequestDescriptor): Promise<T> {
   let payload: ApiResponseEnvelope<T> | null;
 
   try {
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     payload = (await response.json()) as ApiResponseEnvelope<T> | null;
   } catch {
     throw new AppResponseFormatError("后端返回了无法识别的响应结构", response.status);
@@ -148,7 +152,7 @@ export async function request<T>(descriptor: RequestDescriptor): Promise<T> {
     throw new AppResponseFormatError("后端返回了无法识别的响应结构", response.status);
   }
 
-  if (!response.ok || payload.code !== 200) {
+  if (!response.ok || payload.code < 200 || payload.code >= 300) {
     throw new AppBusinessError(payload.message || "请求失败", payload.code, response.status);
   }
 

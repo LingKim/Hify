@@ -3,6 +3,26 @@
 from dataclasses import dataclass
 from functools import lru_cache
 from os import getenv
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+def load_local_env_files() -> None:
+    """Load local environment files for backend development."""
+    backend_dir = Path(__file__).resolve().parents[2]
+    env_files = [
+        backend_dir / ".env",
+        backend_dir / ".env.local",
+        backend_dir / ".env.development",
+        backend_dir / ".env.development.local",
+    ]
+    for env_file in env_files:
+        if env_file.exists():
+            load_dotenv(env_file, override=False)
+
+
+load_local_env_files()
 
 DEFAULT_APP_NAME = "Hify Backend"
 DEFAULT_APP_VERSION = "0.1.0"
@@ -29,6 +49,7 @@ DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_DISTRIBUTED_LOCK_PREFIX = "hify-lock"
 DEFAULT_DISTRIBUTED_LOCK_TTL_SECONDS = 30
 DEFAULT_IDEMPOTENCY_TTL_SECONDS = 300
+DEFAULT_PROVIDER_SECRET_KEY = "hify-provider-secret-key"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +93,7 @@ class Settings:
     distributed_lock_prefix: str = DEFAULT_DISTRIBUTED_LOCK_PREFIX
     distributed_lock_ttl_seconds: int = DEFAULT_DISTRIBUTED_LOCK_TTL_SECONDS
     idempotency_ttl_seconds: int = DEFAULT_IDEMPOTENCY_TTL_SECONDS
+    provider_secret_key: str = DEFAULT_PROVIDER_SECRET_KEY
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -177,6 +199,10 @@ class Settings:
                     "IDEMPOTENCY_TTL_SECONDS",
                     str(DEFAULT_IDEMPOTENCY_TTL_SECONDS),
                 )
+            ),
+            provider_secret_key=getenv(
+                "PROVIDER_SECRET_KEY",
+                DEFAULT_PROVIDER_SECRET_KEY,
             ),
         )
 

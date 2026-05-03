@@ -4,6 +4,7 @@ import {
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
@@ -24,6 +25,11 @@ const navigationItems: ItemType[] = [
     label: "首页",
   },
   {
+    key: "/providers",
+    icon: <RobotOutlined />,
+    label: "模型提供商",
+  },
+  {
     key: "/playground/api-preview",
     icon: <ApiOutlined />,
     label: "联调预览",
@@ -37,6 +43,7 @@ const navigationItems: ItemType[] = [
 
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
+  "/providers": "模型提供商管理",
   "/playground/api-preview": "联调预览",
   "/playground/common-components": "公共组件演示",
 };

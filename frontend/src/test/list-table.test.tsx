@@ -83,6 +83,31 @@ describe("ListTable", () => {
     expect(await screen.findByText("Alpha")).toBeInTheDocument();
   });
 
+  it("enables horizontal scrolling by default for wide tables", async () => {
+    const api = vi.fn(async (_params: ListRequestParams<DemoQuery>) =>
+      createPageResult([{ id: 1, name: "Alpha", status: "enabled" }]),
+    );
+
+    const { container } = render(
+      <ListTable<DemoRecord, DemoQuery>
+        rowKey="id"
+        columns={[
+          { title: "名称", dataIndex: "name" },
+          { title: "状态", dataIndex: "status" },
+        ]}
+        queryKey={(params) => ["demo-list", params]}
+        api={api}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(await screen.findByText("Alpha")).toBeInTheDocument();
+
+    const scrollContent = container.querySelector(".ant-table-content");
+    expect(scrollContent).not.toBeNull();
+    expect(scrollContent).toHaveStyle({ overflowX: "auto" });
+  });
+
   it("submits filters, resets to defaults, and clears row selection after a new query", async () => {
     const api = vi.fn(async (params: ListRequestParams<DemoQuery>) =>
       createPageResult([

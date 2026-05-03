@@ -8,7 +8,8 @@
       "Bash(git stash *)",
       "Bash(curl -s \"https://api.github.com/search/code?q=tab+repo:soybeanjs/soybean-admin+path:layouts\" -H \"Accept: application/vnd.github.v3+json\")",
       "Bash(curl -s \"https://api.github.com/search/code?q=tab+repo:pure-admin/vue-pure-admin+path:layout\" -H \"Accept: application/vnd.github.v3+json\")",
-      "mcp__context7__resolve-library-id"
+      "mcp__context7__resolve-library-id",
+      "Bash(npx tsc *)"
     ]
   }
 }

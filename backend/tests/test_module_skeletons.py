@@ -12,7 +12,12 @@ from app.conversation.model import Conversation
 from app.conversation.service import ConversationService
 from app.knowledge.model import KnowledgeBase
 from app.knowledge.service import KnowledgeService
-from app.llm.model import LlmModel
+from app.llm.model import (
+    ProviderAuthSecret,
+    ProviderHealthStatus,
+    ProviderInstance,
+    ProviderModel,
+)
 from app.llm.service import LlmService
 from app.main import app
 from app.tool.model import Tool
@@ -81,6 +86,16 @@ async def test_service_preview_methods_return_module_payload(
 
 
 def test_placeholder_models_are_importable() -> None:
-    models = [User, LlmModel, Tool, Agent, KnowledgeBase, Conversation]
+    models = [
+        User,
+        ProviderInstance,
+        ProviderAuthSecret,
+        ProviderModel,
+        ProviderHealthStatus,
+        Tool,
+        Agent,
+        KnowledgeBase,
+        Conversation,
+    ]
 
     assert all(model.__name__ for model in models)

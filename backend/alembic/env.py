@@ -8,8 +8,14 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.agent import model as agent_model  # noqa: F401
+from app.auth import model as auth_model  # noqa: F401
+from app.conversation import model as conversation_model  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import Base
+from app.knowledge import model as knowledge_model  # noqa: F401
+from app.llm import model as llm_model  # noqa: F401
+from app.tool import model as tool_model  # noqa: F401
 
 config = context.config
 

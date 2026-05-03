@@ -14,8 +14,30 @@ describe("AppRouter", () => {
       navigationMode: "side",
     });
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const requestUrl = String(input);
+
+      if (requestUrl.includes("/api/v1/llms/providers")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            message: "success",
+            data: {
+              list: [],
+              total: 0,
+              page: 1,
+              pageSize: 10,
+              totalPages: 0,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(
         JSON.stringify({
           code: 200,
           message: "success",
@@ -25,8 +47,8 @@ describe("AppRouter", () => {
           status: 200,
           headers: { "Content-Type": "application/json" },
         },
-      ),
-    );
+      );
+    });
   });
 
   afterEach(() => {
@@ -67,6 +89,26 @@ describe("AppRouter", () => {
     );
 
     expect(screen.getByRole("heading", { name: "后端联调预览" })).toBeInTheDocument();
+  });
+
+  it("renders the provider management page on the providers route", async () => {
+    render(
+      <MemoryRouter
+        initialEntries={["/providers"]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppProviders>
+          <AppRouter />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "模型提供商管理" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the common components page on the playground route", () => {
