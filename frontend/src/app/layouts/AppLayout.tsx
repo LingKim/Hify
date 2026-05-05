@@ -30,6 +30,11 @@ const navigationItems: ItemType[] = [
     label: "模型提供商",
   },
   {
+    key: "/agents",
+    icon: <RobotOutlined />,
+    label: "Agent 配置",
+  },
+  {
     key: "/playground/api-preview",
     icon: <ApiOutlined />,
     label: "联调预览",
@@ -43,6 +48,7 @@ const navigationItems: ItemType[] = [
 
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
+  "/agents": "Agent 配置",
   "/providers": "模型提供商管理",
   "/playground/api-preview": "联调预览",
   "/playground/common-components": "公共组件演示",

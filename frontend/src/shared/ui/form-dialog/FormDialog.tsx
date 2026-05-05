@@ -117,6 +117,9 @@ export function FormDialog<TValues extends object, TDetail = TValues>({
   const baselineValuesRef = useRef<Partial<TValues>>({});
   const primaryAbortControllerRef = useRef<AbortController | null>(null);
   const secondaryAbortControllerRef = useRef<AbortController | null>(null);
+  const watchedFormValues = Form.useWatch([], form) as
+    | Record<string, unknown>
+    | undefined;
 
   const buildSubmitContext = (detailData?: TDetail): FormDialogSubmitContext<TDetail> => ({
     mode,
@@ -249,7 +252,10 @@ export function FormDialog<TValues extends object, TDetail = TValues>({
     },
   });
 
-  const currentFormValues = form.getFieldsValue(true) as Record<string, unknown>;
+  const currentFormValues = {
+    ...(form.getFieldsValue(true) as Record<string, unknown>),
+    ...watchedFormValues,
+  };
   const resolvedTitle = typeof title === "function" ? title(mode) : title;
   const resolvedRowProps: RowProps = rowProps ?? { gutter: DEFAULT_ROW_GUTTER };
   const resolvedDefaultColProps: ColProps = defaultColProps ?? DEFAULT_COL_PROPS;
@@ -269,6 +275,7 @@ export function FormDialog<TValues extends object, TDetail = TValues>({
           <Button
             type="text"
             size="small"
+            className="form-dialog-fullscreen-button"
             aria-label={isFullscreen ? "退出全屏" : "放大全屏"}
             icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
             onClick={() => setIsFullscreen((currentValue) => !currentValue)}

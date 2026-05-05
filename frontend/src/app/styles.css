@@ -835,13 +835,24 @@ body {
 .form-dialog-titlebar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  padding-right: 96px;
 }
 
 .form-dialog-title {
   min-width: 0;
   font-weight: 600;
+}
+
+.form-dialog-modal .ant-modal-content {
+  position: relative;
+}
+
+.form-dialog-fullscreen-button {
+  position: absolute;
+  top: 16px;
+  right: 63px;
+  z-index: 11;
 }
 
 .form-dialog-modal-fullscreen {

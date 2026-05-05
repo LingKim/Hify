@@ -1,4 +1,5 @@
 import { request } from "@/shared/api";
+import type { QueryParams } from "@/shared/api/types";
 import type { ListRequestParams } from "@/shared/types/list";
 import { providerManagementApi } from "@/domain/provider-management/api";
 import type {
@@ -69,7 +70,7 @@ export async function fetchProviderList(
 ): Promise<ProviderListResult> {
   return request<ProviderListResult>({
     request: providerManagementApi.listProviders,
-    query: params,
+    query: params as unknown as QueryParams,
     signal,
   });
 }

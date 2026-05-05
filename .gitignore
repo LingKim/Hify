@@ -3,7 +3,7 @@
 .vscode/
 __pycache__/
 *.py[cod]
-
+.playwright-cli
 backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.venv/

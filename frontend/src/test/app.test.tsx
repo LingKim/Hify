@@ -37,6 +37,26 @@ describe("AppRouter", () => {
         );
       }
 
+      if (requestUrl.includes("/api/v1/agents")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            message: "success",
+            data: {
+              list: [],
+              total: 0,
+              page: 1,
+              pageSize: 10,
+              totalPages: 0,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       return new Response(
         JSON.stringify({
           code: 200,
@@ -109,6 +129,29 @@ describe("AppRouter", () => {
     expect(
       await screen.findByRole("heading", { name: "模型提供商管理" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders the agent configuration page on the agents route", async () => {
+    render(
+      <MemoryRouter
+        initialEntries={["/agents"]}
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppProviders>
+          <AppRouter />
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Agent 配置" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("运营后台")).toBeInTheDocument();
+    expect(screen.getAllByText("Agent 配置").length).toBeGreaterThan(0);
+    expect(screen.queryByText("未知页面")).not.toBeInTheDocument();
   });
 
   it("renders the common components page on the playground route", () => {

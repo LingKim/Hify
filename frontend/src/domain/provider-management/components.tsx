@@ -349,8 +349,12 @@ export function ProviderModelsEditor({
         return [createEmptyModel(0)];
       }
       if (!nextModels.some((model) => model.isDefault)) {
+        const firstModel = nextModels[0];
+        if (firstModel === undefined) {
+          return [createEmptyModel(0)];
+        }
         nextModels[0] = {
-          ...nextModels[0],
+          ...firstModel,
           isDefault: true,
         };
       }
@@ -448,7 +452,7 @@ export function ProviderModelsEditor({
                 <Segmented
                   block
                   value={model.status}
-                  options={modelStatusOptions}
+                  options={[...modelStatusOptions]}
                   onChange={(value) => {
                     updateModel(index, { status: String(value) });
                   }}

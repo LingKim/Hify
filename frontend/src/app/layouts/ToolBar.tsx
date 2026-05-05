@@ -7,6 +7,9 @@ function buildBreadcrumb(pathname: string): { title: string }[] {
   if (pathname === "/providers") {
     return [{ title: "运营后台" }, { title: "模型提供商管理" }];
   }
+  if (pathname === "/agents") {
+    return [{ title: "运营后台" }, { title: "Agent 配置" }];
+  }
   if (pathname === "/playground/api-preview") {
     return [{ title: "Playground" }, { title: "联调预览" }];
   }
