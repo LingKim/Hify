@@ -543,7 +543,6 @@ export function ProviderManagementPage(): JSX.Element {
             <Tooltip title="删除">
               <Button
                 type="link"
-                danger
                 icon={<DeleteOutlined />}
                 onClick={() => {
                   modal.confirm({

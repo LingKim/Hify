@@ -1,16 +1,23 @@
 import {
+  Children,
+  Fragment,
+  cloneElement,
   forwardRef,
+  isValidElement,
   startTransition,
   useImperativeHandle,
   useRef,
   useState,
   type Key,
+  type ReactElement,
   type ReactNode,
 } from "react";
+import { MoreOutlined } from "@ant-design/icons";
 import { keepPreviousData, useQuery, type QueryKey } from "@tanstack/react-query";
 import {
   Alert,
   Button,
+  Dropdown,
   Form,
   Input,
   Pagination,
@@ -20,7 +27,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnType, ColumnsType } from "antd/es/table";
-import type { TableProps } from "antd";
+import type { ButtonProps, TableProps } from "antd";
 import { getErrorMessage } from "@/shared/api";
 import type {
   BatchActionContext,
@@ -50,6 +57,12 @@ export interface ListTableProps<TData, TQuery extends object> {
 }
 
 type DraftQueryValues = Record<string, unknown>;
+type ActionElementProps = {
+  children?: ReactNode;
+  title?: ReactNode;
+};
+
+const TABLE_ACTION_OVERFLOW_THRESHOLD = 3;
 
 type TableSelection<TData> = NonNullable<TableProps<TData>["rowSelection"]>;
 
@@ -163,6 +176,109 @@ function clearableSelectionState<TData>() {
     selectedRowKeys: [] as Key[],
     selectedRows: [] as TData[],
   };
+}
+
+function getActionLabel(label: ReactNode): string | undefined {
+  return typeof label === "string" ? label : undefined;
+}
+
+function isButtonElement(element: ReactElement): element is ReactElement<ButtonProps> {
+  return element.type === Button;
+}
+
+function flattenActionNodes(content: ReactNode): ReactNode[] {
+  return Children.toArray(content).flatMap((node) => {
+    if (!isValidElement<ActionElementProps>(node)) {
+      return [node];
+    }
+
+    if (node.type === Fragment || node.type === Space) {
+      return flattenActionNodes(node.props.children);
+    }
+
+    return [node];
+  });
+}
+
+function normalizeButtonAction(
+  node: ReactElement<ButtonProps>,
+  label?: string,
+): ReactElement<ButtonProps> {
+  return cloneElement(node, {
+    danger: false,
+    type: "link",
+    size: node.props.size ?? "small",
+    "aria-label": node.props["aria-label"] ?? label,
+  });
+}
+
+function normalizeActionNode(node: ReactNode): ReactNode {
+  if (!isValidElement<ActionElementProps>(node)) {
+    return node;
+  }
+
+  if (isButtonElement(node)) {
+    return normalizeButtonAction(node);
+  }
+
+  const childNodes = Children.toArray(node.props.children);
+  const child = childNodes.length === 1 ? childNodes[0] : undefined;
+
+  if (isValidElement<ButtonProps>(child) && isButtonElement(child)) {
+    return cloneElement(node, {
+      children: normalizeButtonAction(child, getActionLabel(node.props.title)),
+    });
+  }
+
+  return node;
+}
+
+function renderTableActionContent(content: ReactNode): ReactNode {
+  const actions = flattenActionNodes(content).map(normalizeActionNode);
+
+  if (actions.length === 0) {
+    return <Typography.Text type="secondary">-</Typography.Text>;
+  }
+
+  if (actions.length <= TABLE_ACTION_OVERFLOW_THRESHOLD) {
+    return (
+      <Space size={4} className="list-table-row-actions">
+        {actions}
+      </Space>
+    );
+  }
+
+  const [primaryAction, ...overflowActions] = actions;
+
+  return (
+    <div className="list-table-row-actions list-table-action-split">
+      <div className="list-table-action-split-primary">{primaryAction}</div>
+      <Dropdown
+        trigger={["hover"]}
+        placement="bottomRight"
+        menu={{ items: [{ key: "actions", label: null }] }}
+        popupRender={() => (
+          <div className="list-table-action-dropdown">
+            <div className="list-table-action-dropdown-items">
+              {overflowActions.map((action, actionIndex) => (
+                <div className="list-table-action-dropdown-item" key={actionIndex}>
+                  {action}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      >
+        <Button
+          type="link"
+          size="small"
+          icon={<MoreOutlined />}
+          aria-label="更多操作"
+          className="list-table-action-more-button"
+        />
+      </Dropdown>
+    </div>
+  );
 }
 
 function InnerListTable<TData, TQuery extends object>(
@@ -329,7 +445,7 @@ function InnerListTable<TData, TQuery extends object>(
           return <Typography.Text type="secondary">-</Typography.Text>;
         }
 
-        return <Space size={8} wrap>{content}</Space>;
+        return renderTableActionContent(content);
       },
     });
   }

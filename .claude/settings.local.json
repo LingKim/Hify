@@ -9,7 +9,21 @@
       "Bash(curl -s \"https://api.github.com/search/code?q=tab+repo:soybeanjs/soybean-admin+path:layouts\" -H \"Accept: application/vnd.github.v3+json\")",
       "Bash(curl -s \"https://api.github.com/search/code?q=tab+repo:pure-admin/vue-pure-admin+path:layout\" -H \"Accept: application/vnd.github.v3+json\")",
       "mcp__context7__resolve-library-id",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm list *)",
+      "Bash(uipro *)",
+      "Bash(npm view *)",
+      "Bash(cp *)",
+      "Read(//Users/lilin/.codex/**)",
+      "Read(//Users/lilin/**)",
+      "Bash(mkdir -p /tmp/uipro-test)",
+      "Read(//tmp/**)",
+      "Bash(rm -rf /tmp/uipro-test)",
+      "Bash(rm -rf /Users/lilin/Desktop/AI系列/Hify/.claude/skills/ui-ux-pro-max)",
+      "Bash(python3 *)",
+      "Bash(tmux new-session *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/landing)"
     ]
   }
 }

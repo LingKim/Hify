@@ -70,6 +70,7 @@ Theme registry in `app/theme/registry.ts` maps `"light"` | `"dark"` to Ant Desig
 - **新增颜色先加 token，再在样式中引用**：如果现有变量不够用，先在 `frontend/src/app/theme/tokens.ts` 里补充 light/dark 对应 token，再在 `frontend/src/app/styles.css` 或组件样式里通过 `var(--token-name)` 使用；不要在页面或组件里临时发明一组新颜色。
 - **允许的例外要克制**：只有非常局部、一次性的视觉细节，且明确不需要主题联动时，才允许写少量原始颜色值；如果一个颜色会重复出现、会参与 hover/active/disabled、或者需要兼容明暗主题，就必须提升为 token。
 - **优先复用语义色，不直接拼状态色**：成功、警告、错误、信息态优先使用 `--color-success`、`--color-warning`、`--color-error`、`--color-info` 及其 subtle 版本；边框、背景、hover 态优先通过 `color-mix(...)` 基于现有 token 生成，而不是重新写一套颜色。
+- **`color-mix()` 中禁止 `white` / `black` 作基底**：暗色主题下 `white` 会在深色面板上产生剧烈反差，`black` 会在浅色面板上过度压暗。`color-mix()` 的第二参数应使用 `var(--panel-bg)`、`var(--text-strong)` 等语义 token。同理，`rgb(255 255 255 / ...)` 做背景渐变时也必须替换为基于 `var(--panel-bg)` 的 `color-mix()` 渐变，否则切换暗色主题会立刻穿帮。
 
 ### Path Alias
 
@@ -83,8 +84,10 @@ Theme registry in `app/theme/registry.ts` maps `"light"` | `"dark"` to Ant Desig
 - **Chinese locale**: user-facing text and comments are in Chinese. The `<html lang="zh-CN">` is set.
 - **Ant Design 6**: use Ant Design components as the primary UI library. Access Antd's `App` wrapper context (message, notification, modal) via `App.useApp()` hook, not static methods.
 - **表格操作列默认仅显示 icon**：`ListTable` 或各页面表格中的“操作”列，按钮默认只显示 icon，不显示文字。按钮名称通过 hover 态展示，优先使用 `Tooltip`；如果产品明确要求做成 hover 才展开文字的胶囊按钮，也应保持默认静态态仅见 icon。
-- **操作列交互保持统一**：同一列里的查看、编辑、删除、测试等动作，默认使用统一尺寸、统一视觉权重的 icon button；不要在某些页面直接写“编辑 / 删除”文字按钮，除非该操作极少、风险极高，且经过明确说明。
+- **操作列按钮样式保持统一**：同一列里的查看、编辑、删除、测试等动作，默认使用和“模型提供商管理”编辑按钮一致的 Ant Design `Button type="link"` icon button，统一 `size="small"`。操作列内的删除按钮也必须和其它操作按钮保持同一颜色、尺寸、边框和 hover 形态，不在行内按钮上使用 `danger`、额外边框、实心危险按钮或自定义颜色；危险语义放到二次确认弹窗的文案和确认按钮上表达。
+- **操作列超过三个动作必须收纳**：表格单行操作超过 3 个时，不要全部平铺展示；默认只展示第一个高频动作，其余动作通过 Ant Design `Dropdown` 在 hover 时展开，触发器采用“左侧主操作按钮 + 右侧三点更多按钮”的组合形态。Dropdown 面板宽度不能只贴合一个 icon，至少保留约两个 icon 的可视宽度，并优先在 `ListTable` 公共组件层处理该规则，不要在业务页面重复实现下拉菜单。
 - **Shared UI first**: before creating page-level or domain-level UI, always check whether `shared/ui` already provides a suitable public component such as `FrameView`, `ListTable`, or `FormDialog`. Prefer extending or composing existing shared components over rebuilding similar structures.
+- **FormDialog 默认不开启全屏**：调用 `FormDialog` 时不应主动传 `fullscreen`（或 `fullscreen={true}`），弹窗默认以 `width` prop 指定的宽度打开。用户可通过标题栏按钮自行切换全屏模式，关闭弹窗后自动恢复初始尺寸。如需更宽的弹窗，调大 `width` 即可（如 `width={1120}`）。
 - **No ad-hoc wheels**: if current shared components do not fully satisfy the requirement, first evaluate whether the gap should be filled by enhancing the shared component API. Do not create a parallel duplicate component or reimplement the same pattern locally unless there is a clear reason that shared abstraction is inappropriate.
 - **Escalate when abstraction is unclear**: when a requirement only partially matches an existing shared component, do not silently invent a new wheel. Compare reuse, extension, and local-only implementation, then choose the smallest reasonable solution based on actual scope.
 - **New domains**: create a subdirectory under `domain/` with the five-file structure (`types.ts`, `api.ts`, `service.ts`, `queries.ts`, `components.tsx`). Add corresponding page components under `pages/` and register routes in `app/router/AppRouter.tsx`.

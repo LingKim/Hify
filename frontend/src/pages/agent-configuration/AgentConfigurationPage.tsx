@@ -326,6 +326,7 @@ export function AgentConfigurationPage(): JSX.Element {
           <>
             <Tooltip title="配置预览">
               <Button
+                type="link"
                 aria-label="配置预览"
                 icon={<EyeOutlined />}
                 onClick={() => void handlePreview(record)}
@@ -333,6 +334,7 @@ export function AgentConfigurationPage(): JSX.Element {
             </Tooltip>
             <Tooltip title="编辑">
               <Button
+                type="link"
                 aria-label="编辑"
                 icon={<EditOutlined />}
                 onClick={() => openEditDialog(record.id)}
@@ -340,7 +342,7 @@ export function AgentConfigurationPage(): JSX.Element {
             </Tooltip>
             <Tooltip title="删除">
               <Button
-                danger
+                type="link"
                 aria-label="删除"
                 icon={<DeleteOutlined />}
                 onClick={() => handleDelete(record)}
@@ -355,7 +357,6 @@ export function AgentConfigurationPage(): JSX.Element {
         mode={dialogMode}
         title={dialogMode === "create" ? "新增 Agent" : "编辑 Agent"}
         width={860}
-        fullscreen
         onOpenChange={setDialogOpen}
         editId={editingId}
         initialValues={INITIAL_FORM_VALUES}

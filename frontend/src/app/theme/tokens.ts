@@ -1,27 +1,29 @@
 /**
  * Hify Design Tokens
  *
- * Visual identity: light surface + dark sidebar + blue-purple brand + teal accents.
- * Reference aesthetic: Linear / Supabase — clean precision with intentional color.
+ * Visual identity: neutral base + AI violet accent + teal complement.
+ * Reference aesthetic: Linear / Vercel — clean precision with vibrant AI accent.
  *
  * Color space: OKLCH for perceptual uniformity.
  */
 
 // ─── Color Scales ────────────────────────────────────────────────────────────
 
+// AI Violet (hue 292) — vibrant, distinctive, modern AI identity
 const primary = {
-  50: "oklch(97.2% 0.011 270)",
-  100: "oklch(94.0% 0.022 270)",
-  200: "oklch(89.2% 0.038 270)",
-  300: "oklch(81.8% 0.058 270)",
-  400: "oklch(71.5% 0.088 270)",
-  500: "oklch(58.0% 0.120 270)",
-  600: "oklch(50.0% 0.115 270)",
-  700: "oklch(42.5% 0.092 270)",
-  800: "oklch(35.5% 0.072 270)",
-  900: "oklch(28.0% 0.052 270)",
+  50: "oklch(96.9% 0.026 292)",
+  100: "oklch(93.4% 0.058 292)",
+  200: "oklch(86.4% 0.106 292)",
+  300: "oklch(76.4% 0.148 292)",
+  400: "oklch(64.3% 0.194 292)",
+  500: "oklch(53.6% 0.226 292)",
+  600: "oklch(46.3% 0.222 292)",
+  700: "oklch(40.0% 0.200 292)",
+  800: "oklch(33.5% 0.155 292)",
+  900: "oklch(27.5% 0.105 292)",
 } as const;
 
+// Teal (hue 185) — complementary accent to violet
 const secondary = {
   50: "oklch(97.4% 0.014 185)",
   100: "oklch(93.8% 0.028 185)",
@@ -35,32 +37,31 @@ const secondary = {
   900: "oklch(32.5% 0.042 185)",
 } as const;
 
-// Blue-tinted grays — cohesive with the brand purple
+// Truly neutral grays — clean canvas for the violet accent to pop
 const neutralLight = {
-  50: "oklch(99.2% 0.002 260)",
-  100: "oklch(97.5% 0.003 260)",
-  200: "oklch(95.0% 0.004 260)",
-  300: "oklch(91.0% 0.005 260)",
-  400: "oklch(83.0% 0.005 260)",
-  500: "oklch(68.0% 0.006 260)",
-  600: "oklch(50.0% 0.007 260)",
-  700: "oklch(38.0% 0.007 260)",
-  800: "oklch(27.0% 0.008 260)",
-  900: "oklch(18.0% 0.008 260)",
+  50: "oklch(99.2% 0.001 0)",
+  100: "oklch(97.5% 0.001 0)",
+  200: "oklch(95.0% 0.001 0)",
+  300: "oklch(91.0% 0.002 0)",
+  400: "oklch(83.0% 0.002 0)",
+  500: "oklch(68.0% 0.003 0)",
+  600: "oklch(50.0% 0.003 0)",
+  700: "oklch(38.0% 0.004 0)",
+  800: "oklch(27.0% 0.004 0)",
+  900: "oklch(18.0% 0.004 0)",
 } as const;
 
-// Purple-tinted dark grays — cohesive with dark sidebar
 const neutralDark = {
-  50: "oklch(14.0% 0.015 270)",
-  100: "oklch(17.0% 0.015 270)",
-  200: "oklch(20.5% 0.014 270)",
-  300: "oklch(25.0% 0.013 270)",
-  400: "oklch(32.0% 0.012 270)",
-  500: "oklch(42.0% 0.010 270)",
-  600: "oklch(55.0% 0.009 270)",
-  700: "oklch(70.0% 0.008 270)",
-  800: "oklch(82.0% 0.007 270)",
-  900: "oklch(94.0% 0.006 270)",
+  50: "oklch(14.0% 0.003 0)",
+  100: "oklch(17.0% 0.003 0)",
+  200: "oklch(20.5% 0.003 0)",
+  300: "oklch(25.0% 0.004 0)",
+  400: "oklch(32.0% 0.004 0)",
+  500: "oklch(42.0% 0.004 0)",
+  600: "oklch(55.0% 0.004 0)",
+  700: "oklch(70.0% 0.003 0)",
+  800: "oklch(82.0% 0.003 0)",
+  900: "oklch(94.0% 0.002 0)",
 } as const;
 
 // ─── Semantic Colors ─────────────────────────────────────────────────────────
@@ -98,10 +99,10 @@ export const radius = {
 
 const shadows = {
   light: {
-    sm: "0 1px 2px oklch(20% 0.01 270 / 4%)",
-    md: "0 4px 12px oklch(20% 0.01 270 / 6%)",
-    lg: "0 12px 32px oklch(20% 0.01 270 / 10%)",
-    xl: "0 24px 60px oklch(20% 0.01 270 / 14%)",
+    sm: "0 1px 2px oklch(20% 0.001 0 / 4%)",
+    md: "0 4px 12px oklch(20% 0.001 0 / 6%)",
+    lg: "0 12px 32px oklch(20% 0.001 0 / 10%)",
+    xl: "0 24px 60px oklch(20% 0.001 0 / 14%)",
   },
   dark: {
     sm: "0 1px 2px oklch(0% 0 0 / 16%)",
@@ -163,7 +164,7 @@ export function buildLightVariables(): Record<string, string> {
     "--color-info-subtle": semantic.info.light.subtle,
 
     // ── Surface ──
-    "--color-bg-dark": "oklch(11% 0.012 270)",
+    "--color-bg-dark": "oklch(12% 0.003 0)",
     "--color-bg-secondary": neutralLight[200],
     "--page-bg": neutralLight[100],
     "--panel-bg": "rgb(255 255 255)",
@@ -189,7 +190,7 @@ export function buildLightVariables(): Record<string, string> {
     "--top-nav-bg": "rgb(255 255 255 / 85%)",
     "--top-nav-border": neutralLight[300],
     "--top-nav-item-hover": primary[50],
-    "--top-nav-item-active": `linear-gradient(135deg, oklch(92% 0.03 270) 0%, oklch(85% 0.05 270) 100%)`,
+    "--top-nav-item-active": `linear-gradient(135deg, oklch(92% 0.03 292) 0%, oklch(85% 0.05 292) 100%)`,
 
     // ── Drawer ──
     "--drawer-surface": `linear-gradient(180deg, ${neutralLight[50]} 0%, ${neutralLight[100]} 100%)`,
@@ -229,8 +230,8 @@ export function buildDarkVariables(): Record<string, string> {
     "--brand-hover": primary[300],
     "--brand-active": primary[500],
     "--brand-strong": primary[500],
-    "--brand-tint": "oklch(28% 0.03 270)",
-    "--brand-subtle": "oklch(22% 0.02 270)",
+    "--brand-tint": "oklch(28% 0.03 292)",
+    "--brand-subtle": "oklch(22% 0.02 292)",
 
     // ── Accent (Secondary Semantic) ──
     "--accent": secondary[400],
@@ -249,11 +250,11 @@ export function buildDarkVariables(): Record<string, string> {
     "--color-info-subtle": semantic.info.dark.subtle,
 
     // ── Surface ──
-    "--color-bg-dark": "oklch(11% 0.012 270)",
+    "--color-bg-dark": "oklch(12% 0.003 0)",
     "--color-bg-secondary": neutralDark[100],
     "--page-bg": neutralDark[50],
-    "--panel-bg": `oklch(19% 0.014 270 / 92%)`,
-    "--panel-border": "oklch(28% 0.015 270)",
+    "--panel-bg": `oklch(19% 0.003 0 / 92%)`,
+    "--panel-border": "oklch(28% 0.003 0)",
     "--panel-shadow": shadows.dark.lg,
 
     // ── Content ──
@@ -263,19 +264,19 @@ export function buildDarkVariables(): Record<string, string> {
     "--text-disabled": neutralDark[400],
 
     // ── Boundary ──
-    "--border-default": "oklch(28% 0.015 270)",
-    "--border-strong": "oklch(35% 0.013 270)",
+    "--border-default": "oklch(28% 0.003 0)",
+    "--border-strong": "oklch(35% 0.003 0)",
     "--border-focus": primary[400],
 
     // ── Tag ──
-    "--tag-bg": "oklch(22% 0.012 270)",
-    "--tag-active-bg": "oklch(20% 0.014 270 / 92%)",
+    "--tag-bg": "oklch(22% 0.003 0)",
+    "--tag-active-bg": "oklch(20% 0.003 0 / 92%)",
 
     // ── Top Nav ──
-    "--top-nav-bg": "oklch(18% 0.014 270 / 88%)",
-    "--top-nav-border": "oklch(28% 0.015 270)",
-    "--top-nav-item-hover": "oklch(25% 0.02 270)",
-    "--top-nav-item-active": `linear-gradient(135deg, oklch(30% 0.03 270) 0%, oklch(25% 0.04 270) 100%)`,
+    "--top-nav-bg": "oklch(18% 0.003 0 / 88%)",
+    "--top-nav-border": "oklch(28% 0.003 0)",
+    "--top-nav-item-hover": "oklch(25% 0.005 292)",
+    "--top-nav-item-active": `linear-gradient(135deg, oklch(30% 0.02 292) 0%, oklch(25% 0.03 292) 100%)`,
 
     // ── Drawer ──
     "--drawer-surface": `linear-gradient(180deg, ${neutralDark[100]} 0%, ${neutralDark[50]} 100%)`,
@@ -307,6 +308,6 @@ export function buildDarkVariables(): Record<string, string> {
 // Ant Design requires hex for colorPrimary; these match the OKLCH primary scale.
 
 export const antdHex = {
-  primaryLight: "#5E6AD2",
-  primaryDark: "#8B93E6",
+  primaryLight: "#8B5CF6",
+  primaryDark: "#A78BFA",
 } as const;

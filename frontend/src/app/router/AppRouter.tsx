@@ -6,10 +6,12 @@ import { CommonComponentsPage } from "@/pages/playground-common-components/Commo
 import { ApiPreviewPage } from "@/pages/playground-api-preview/ApiPreviewPage";
 import { ProviderManagementPage } from "@/pages/provider-management/ProviderManagementPage";
 import { AgentConfigurationPage } from "@/pages/agent-configuration/AgentConfigurationPage";
+import { LandingPage } from "@/pages/landing/LandingPage";
 
 export function AppRouter(): JSX.Element {
   return (
     <Routes>
+      <Route path="/landing" element={<LandingPage />} />
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="/agents" element={<AgentConfigurationPage />} />

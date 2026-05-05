@@ -36,11 +36,6 @@ body {
 
 .provider-hero-card.ant-card {
   border-radius: 22px;
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(246 248 252 / 98%)),
-    var(--panel-bg);
-  border: 1px solid color-mix(in oklch, var(--primary-500) 12%, white);
-  box-shadow: 0 18px 40px rgb(15 23 42 / 7%);
 }
 
 .provider-hero {
@@ -90,9 +85,6 @@ body {
 
 .provider-model-card.ant-card {
   border-radius: 18px;
-  border: 1px solid color-mix(in oklch, var(--border-default) 70%, white);
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(250 251 253 / 100%));
 }
 
 .provider-model-card .ant-card-head {
@@ -126,7 +118,7 @@ body {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px dashed color-mix(in oklch, var(--border-default) 60%, white);
+  border-top: 1px dashed color-mix(in oklch, var(--border-default) 60%, var(--panel-bg));
 }
 
 .provider-capability-item {
@@ -136,8 +128,8 @@ body {
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: color-mix(in oklch, var(--panel-bg) 92%, white);
-  border: 1px solid color-mix(in oklch, var(--border-default) 55%, white);
+  background: color-mix(in oklch, var(--panel-bg) 92%, var(--brand-tint));
+  border: 1px solid color-mix(in oklch, var(--border-default) 55%, var(--panel-bg));
 }
 
 .provider-capability-item .ant-typography {
@@ -150,8 +142,8 @@ body {
   min-height: 32px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px dashed color-mix(in oklch, var(--border-default) 65%, white);
-  background: color-mix(in oklch, var(--panel-bg) 94%, white);
+  border: 1px dashed color-mix(in oklch, var(--border-default) 65%, var(--panel-bg));
+  background: color-mix(in oklch, var(--panel-bg) 94%, var(--brand-tint));
 }
 
 .provider-health-popover {
@@ -434,7 +426,7 @@ body {
   border-radius: var(--radius-lg);
   background: var(--panel-bg);
   box-shadow:
-    0 6px 16px oklch(20% 0.01 270 / 10%),
+    0 6px 16px oklch(20% 0.001 0 / 10%),
     0 0 0 1px var(--border-default);
 }
 
@@ -832,6 +824,53 @@ body {
   margin-top: 16px;
 }
 
+.list-table-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.list-table-action-split {
+  gap: 2px;
+}
+
+.list-table-action-split-primary,
+.list-table-action-more-button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.list-table-action-more-button.ant-btn {
+  min-width: 28px;
+}
+
+.list-table-action-dropdown {
+  min-width: 72px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.list-table-action-dropdown-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+}
+
+.list-table-action-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-table-action-dropdown-item .ant-btn {
+  min-width: 28px;
+}
+
 .form-dialog-titlebar {
   display: flex;
   align-items: center;
@@ -844,8 +883,30 @@ body {
   font-weight: 600;
 }
 
-.form-dialog-modal .ant-modal-content {
+.form-dialog-modal {
+  top: 6vh;
+  max-height: 88vh;
+  padding-bottom: 6vh;
+}
+
+.form-dialog-modal .ant-modal-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  overflow: hidden;
+}
+
+.form-dialog-modal .ant-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.form-dialog-modal .ant-modal-body::-webkit-scrollbar {
+  display: none;
 }
 
 .form-dialog-fullscreen-button {
@@ -857,27 +918,37 @@ body {
 
 .form-dialog-modal-fullscreen {
   top: 24px;
+  max-height: calc(100vh - 48px);
   padding-bottom: 24px;
 }
 
-.form-dialog-modal-fullscreen .ant-modal-content {
+.form-dialog-modal-fullscreen .ant-modal-container {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 48px);
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
+  min-height: 0;
 }
 
 .form-dialog-modal-fullscreen .ant-modal-body {
-  flex: 1;
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.form-dialog-modal-fullscreen .ant-modal-body::-webkit-scrollbar {
+  display: none;
 }
 
 .form-dialog-error {
   margin-bottom: 16px;
   padding: 12px 14px;
-  border: 1px solid color-mix(in oklch, #ff4d4f 28%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-error) 28%, transparent);
   border-radius: var(--radius-lg);
-  color: #cf1322;
-  background: color-mix(in oklch, #ff4d4f 8%, white 92%);
+  color: var(--color-error);
+  background: color-mix(in oklch, var(--color-error) 8%, var(--panel-bg));
 }
 
 .form-dialog-submit-error.ant-alert {
