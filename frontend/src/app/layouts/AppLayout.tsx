@@ -1,9 +1,11 @@
 import {
   ApiOutlined,
   AppstoreOutlined,
+  CommentOutlined,
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ProfileOutlined,
   RobotOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
@@ -35,6 +37,16 @@ const navigationItems: ItemType[] = [
     label: "Agent 配置",
   },
   {
+    key: "/chat",
+    icon: <CommentOutlined />,
+    label: "对话使用",
+  },
+  {
+    key: "/conversations",
+    icon: <ProfileOutlined />,
+    label: "会话日志",
+  },
+  {
     key: "/playground/api-preview",
     icon: <ApiOutlined />,
     label: "联调预览",
@@ -49,6 +61,8 @@ const navigationItems: ItemType[] = [
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
   "/agents": "Agent 配置",
+  "/chat": "对话使用",
+  "/conversations": "会话日志",
   "/providers": "模型提供商管理",
   "/playground/api-preview": "联调预览",
   "/playground/common-components": "公共组件演示",

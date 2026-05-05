@@ -7,6 +7,8 @@ import { ApiPreviewPage } from "@/pages/playground-api-preview/ApiPreviewPage";
 import { ProviderManagementPage } from "@/pages/provider-management/ProviderManagementPage";
 import { AgentConfigurationPage } from "@/pages/agent-configuration/AgentConfigurationPage";
 import { LandingPage } from "@/pages/landing/LandingPage";
+import { ChatPage } from "@/pages/chat/ChatPage";
+import { ConversationLogPage } from "@/pages/conversation/ConversationLogPage";
 
 export function AppRouter(): JSX.Element {
   return (
@@ -14,6 +16,8 @@ export function AppRouter(): JSX.Element {
       <Route path="/landing" element={<LandingPage />} />
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/conversations" element={<ConversationLogPage />} />
         <Route path="/agents" element={<AgentConfigurationPage />} />
         <Route path="/providers" element={<ProviderManagementPage />} />
         <Route path="/playground/api-preview" element={<ApiPreviewPage />} />
