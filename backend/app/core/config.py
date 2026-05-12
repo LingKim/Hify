@@ -50,6 +50,9 @@ DEFAULT_DISTRIBUTED_LOCK_PREFIX = "hify-lock"
 DEFAULT_DISTRIBUTED_LOCK_TTL_SECONDS = 30
 DEFAULT_IDEMPOTENCY_TTL_SECONDS = 300
 DEFAULT_PROVIDER_SECRET_KEY = "hify-provider-secret-key"
+DEFAULT_EMBEDDINGS_BASE_URL = "https://api.siliconflow.cn/v1"
+DEFAULT_EMBEDDINGS_MODEL = "Qwen/Qwen3-Embedding-8B"
+DEFAULT_EMBEDDINGS_DIMENSIONS = 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +97,10 @@ class Settings:
     distributed_lock_ttl_seconds: int = DEFAULT_DISTRIBUTED_LOCK_TTL_SECONDS
     idempotency_ttl_seconds: int = DEFAULT_IDEMPOTENCY_TTL_SECONDS
     provider_secret_key: str = DEFAULT_PROVIDER_SECRET_KEY
+    embeddings_secret_key: str | None = None
+    embeddings_base_url: str = DEFAULT_EMBEDDINGS_BASE_URL
+    embeddings_model: str = DEFAULT_EMBEDDINGS_MODEL
+    embeddings_dimensions: int = DEFAULT_EMBEDDINGS_DIMENSIONS
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -203,6 +210,21 @@ class Settings:
             provider_secret_key=getenv(
                 "PROVIDER_SECRET_KEY",
                 DEFAULT_PROVIDER_SECRET_KEY,
+            ),
+            embeddings_secret_key=getenv("EMBEDDDINGS_SECRET_KEY"),
+            embeddings_base_url=getenv(
+                "EMBEDDINGS_BASE_URL",
+                DEFAULT_EMBEDDINGS_BASE_URL,
+            ),
+            embeddings_model=getenv(
+                "EMBEDDINGS_MODEL",
+                DEFAULT_EMBEDDINGS_MODEL,
+            ),
+            embeddings_dimensions=int(
+                getenv(
+                    "EMBEDDINGS_DIMENSIONS",
+                    str(DEFAULT_EMBEDDINGS_DIMENSIONS),
+                )
             ),
         )
 

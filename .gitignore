@@ -4,6 +4,7 @@
 __pycache__/
 *.py[cod]
 .playwright-cli
+.playwright-mcp
 backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.venv/
