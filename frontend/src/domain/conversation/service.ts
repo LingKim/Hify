@@ -12,6 +12,7 @@ import type {
 } from "@/domain/conversation/types";
 import { AppBusinessError, AppRequestError, request } from "@/shared/api";
 import { getApiBasePath } from "@/shared/config/env";
+import { getAccessToken } from "@/shared/auth/token";
 import type { QueryParams } from "@/shared/api/types";
 import type { ListRequestParams } from "@/shared/types/list";
 
@@ -107,14 +108,20 @@ export async function streamConversationMessage(
   callbacks: StreamMessageCallbacks,
   signal?: AbortSignal,
 ): Promise<void> {
+  const headers = new Headers({
+    Accept: "text/event-stream",
+    "Content-Type": "application/json",
+  });
+  const accessToken = getAccessToken();
+  if (accessToken !== null && accessToken !== "") {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
   const response = await fetch(
     `${getApiBasePath()}/conversations/${conversationId}/messages/stream`,
     {
       method: "POST",
-      headers: {
-        Accept: "text/event-stream",
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ content }),
       signal,
     },

@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.deps import get_current_active_user
+from app.auth.model import User
 from app.conversation.schema import (
     ConversationAgentRuntimePreviewResp,
     ConversationChatPreviewResp,
@@ -30,8 +32,10 @@ router = APIRouter(prefix="/api/v1/conversations", tags=["conversation"])
 )
 async def chat_preview(
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ConversationChatPreviewResp]:
     """Return the conversation module preview endpoint response."""
+    del current_user
     service = ConversationService(db)
     return Result.success(data=await service.preview())
 
@@ -40,10 +44,16 @@ async def chat_preview(
 async def list_conversations(
     params: ConversationListParams = Depends(),
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[PageResult[ConversationSummaryResp]]:
     """Return current user's conversations."""
     service = ConversationService(db)
-    return Result.success(data=await service.list_conversations(params))
+    return Result.success(
+        data=await service.list_conversations(
+            params,
+            user_id=current_user.id,
+        )
+    )
 
 
 @router.post(
@@ -54,10 +64,14 @@ async def list_conversations(
 async def create_conversation(
     payload: ConversationCreateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ConversationDetailResp]:
     """Create one conversation."""
     service = ConversationService(db)
-    data = await service.create_conversation(payload)
+    data = await service.create_conversation(
+        payload,
+        user_id=current_user.id,
+    )
     return Result.success(data=data, code=status.HTTP_201_CREATED)
 
 
@@ -68,10 +82,14 @@ async def create_conversation(
 async def get_agent_runtime_preview(
     agent_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ConversationAgentRuntimePreviewResp]:
     """Return one agent runtime preview for conversation."""
+    del current_user
     service = ConversationService(db)
-    return Result.success(data=await service.get_agent_runtime_preview(agent_id))
+    return Result.success(
+        data=await service.get_agent_runtime_preview(agent_id)
+    )
 
 
 @router.get(
@@ -81,10 +99,16 @@ async def get_agent_runtime_preview(
 async def get_conversation(
     conversation_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ConversationDetailResp]:
     """Return one conversation detail."""
     service = ConversationService(db)
-    return Result.success(data=await service.get_conversation(conversation_id))
+    return Result.success(
+        data=await service.get_conversation(
+            conversation_id,
+            user_id=current_user.id,
+        )
+    )
 
 
 @router.patch(
@@ -95,11 +119,16 @@ async def update_conversation(
     conversation_id: int,
     payload: ConversationUpdateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ConversationDetailResp]:
     """Update one conversation."""
     service = ConversationService(db)
     return Result.success(
-        data=await service.update_conversation(conversation_id, payload)
+        data=await service.update_conversation(
+            conversation_id,
+            payload,
+            user_id=current_user.id,
+        )
     )
 
 
@@ -107,10 +136,14 @@ async def update_conversation(
 async def delete_conversation(
     conversation_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Response:
     """Soft-delete one conversation."""
     service = ConversationService(db)
-    await service.delete_conversation(conversation_id)
+    await service.delete_conversation(
+        conversation_id,
+        user_id=current_user.id,
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -122,11 +155,16 @@ async def list_messages(
     conversation_id: int,
     params: ConversationMessageListParams = Depends(),
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[PageResult[ConversationMessageResp]]:
     """Return conversation message history."""
     service = ConversationService(db)
     return Result.success(
-        data=await service.list_messages(conversation_id, params)
+        data=await service.list_messages(
+            conversation_id,
+            params,
+            user_id=current_user.id,
+        )
     )
 
 
@@ -135,10 +173,15 @@ async def stream_message(
     conversation_id: int,
     payload: ConversationStreamMessageReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> StreamingResponse:
     """Send one user message and stream assistant output through SSE."""
     service = ConversationService(db)
-    prepared = await service.prepare_stream_message(conversation_id, payload)
+    prepared = await service.prepare_stream_message(
+        conversation_id,
+        payload,
+        user_id=current_user.id,
+    )
     return StreamingResponse(
         stream_events(service, prepared),
         media_type="text/event-stream",

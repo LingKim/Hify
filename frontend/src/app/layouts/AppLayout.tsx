@@ -7,6 +7,7 @@ import {
   MenuUnfoldOutlined,
   ProfileOutlined,
   RobotOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
@@ -47,6 +48,11 @@ const navigationItems: ItemType[] = [
     label: "会话日志",
   },
   {
+    key: "/users",
+    icon: <UserOutlined />,
+    label: "用户管理",
+  },
+  {
     key: "/playground/api-preview",
     icon: <ApiOutlined />,
     label: "联调预览",
@@ -64,6 +70,7 @@ const routeTitleMap: Record<string, string> = {
   "/chat": "对话使用",
   "/conversations": "会话日志",
   "/providers": "模型提供商管理",
+  "/users": "用户管理",
   "/playground/api-preview": "联调预览",
   "/playground/common-components": "公共组件演示",
 };

@@ -6,7 +6,6 @@ from fastapi import status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.model import User
 from app.conversation.errors import ConversationErrorCode
 from app.conversation.model import (
     ConversationMessage,
@@ -23,7 +22,10 @@ from app.conversation.presenter import (
     optional_int,
     preview_text,
 )
-from app.conversation.runtime import ConversationRuntime, PreparedConversationRun
+from app.conversation.runtime import (
+    ConversationRuntime,
+    PreparedConversationRun,
+)
 from app.conversation.schema import (
     ConversationAgentRuntimePreviewResp,
     ConversationChatPreviewResp,
@@ -77,11 +79,12 @@ class ConversationService:
     async def list_conversations(
         self,
         params: ConversationListParams,
+        *,
+        user_id: int,
     ) -> PageResult[ConversationSummaryResp]:
         """Return paginated conversation summaries for the current user."""
-        user = await self._get_root_user()
         filters = [
-            ConversationSession.user_id == user.id,
+            ConversationSession.user_id == user_id,
             ConversationSession.deleted_at.is_(None),
         ]
         if params.keyword:
@@ -127,15 +130,16 @@ class ConversationService:
     async def create_conversation(
         self,
         payload: ConversationCreateReq,
+        *,
+        user_id: int,
     ) -> ConversationDetailResp:
-        """Create a conversation for the root user."""
-        user = await self._get_root_user()
-        agent, model, provider, _secret = await self.runtime.load_runnable_agent(
-            payload.agent_id
+        """Create a conversation for the current user."""
+        agent, model, provider, _secret = (
+            await self.runtime.load_runnable_agent(payload.agent_id)
         )
         snapshot = build_agent_snapshot(agent, model, provider)
         conversation = ConversationSession(
-            user_id=user.id,
+            user_id=user_id,
             agent_id=agent.id,
             title=payload.title or "新会话",
             status="active",
@@ -148,18 +152,31 @@ class ConversationService:
         await self.db.refresh(conversation)
         return build_detail_response(conversation)
 
-    async def get_conversation(self, conversation_id: int) -> ConversationDetailResp:
-        """Return one conversation detail for the root user."""
-        conversation = await self._get_conversation_or_raise(conversation_id)
+    async def get_conversation(
+        self,
+        conversation_id: int,
+        *,
+        user_id: int,
+    ) -> ConversationDetailResp:
+        """Return one conversation detail for the current user."""
+        conversation = await self._get_conversation_or_raise(
+            conversation_id,
+            user_id=user_id,
+        )
         return build_detail_response(conversation)
 
     async def update_conversation(
         self,
         conversation_id: int,
         payload: ConversationUpdateReq,
+        *,
+        user_id: int,
     ) -> ConversationDetailResp:
         """Update one conversation title or archive status."""
-        conversation = await self._get_conversation_or_raise(conversation_id)
+        conversation = await self._get_conversation_or_raise(
+            conversation_id,
+            user_id=user_id,
+        )
         if payload.title is not None:
             conversation.title = payload.title.strip()
         if payload.status is not None:
@@ -169,9 +186,17 @@ class ConversationService:
         await self.db.refresh(conversation)
         return build_detail_response(conversation)
 
-    async def delete_conversation(self, conversation_id: int) -> None:
+    async def delete_conversation(
+        self,
+        conversation_id: int,
+        *,
+        user_id: int,
+    ) -> None:
         """Soft-delete one conversation and its messages/runs."""
-        conversation = await self._get_conversation_or_raise(conversation_id)
+        conversation = await self._get_conversation_or_raise(
+            conversation_id,
+            user_id=user_id,
+        )
         now = utc_now()
         conversation.deleted_at = now
         conversation.status = "deleted"
@@ -199,9 +224,14 @@ class ConversationService:
         self,
         conversation_id: int,
         params: ConversationMessageListParams,
+        *,
+        user_id: int,
     ) -> PageResult[ConversationMessageResp]:
         """Return paginated messages in one conversation."""
-        conversation = await self._get_conversation_or_raise(conversation_id)
+        conversation = await self._get_conversation_or_raise(
+            conversation_id,
+            user_id=user_id,
+        )
         filters = [
             ConversationMessage.conversation_id == conversation.id,
             ConversationMessage.deleted_at.is_(None),
@@ -257,9 +287,14 @@ class ConversationService:
         self,
         conversation_id: int,
         payload: ConversationStreamMessageReq,
+        *,
+        user_id: int,
     ) -> PreparedConversationRun:
         """Persist stream placeholders before making the upstream LLM call."""
-        conversation = await self._get_conversation_or_raise(conversation_id)
+        conversation = await self._get_conversation_or_raise(
+            conversation_id,
+            user_id=user_id,
+        )
         if conversation.status != "active":
             raise BizException(
                 code=ConversationErrorCode.CONVERSATION_CLOSED,
@@ -344,38 +379,15 @@ class ConversationService:
             ),
         )
 
-    async def _get_root_user(self) -> User:
-        statement = select(User).where(
-            User.username == "root",
-            User.deleted_at.is_(None),
-        )
-        user = await self.db.scalar(statement)
-        if user is not None:
-            return user
-
-        now = utc_now()
-        user = User(
-            username="root",
-            email="root@hify.local",
-            password_hash="seeded-root-password",
-            role="admin",
-            is_active=True,
-            created_at=now,
-            updated_at=now,
-        )
-        self.db.add(user)
-        await self.db.commit()
-        await self.db.refresh(user)
-        return user
-
     async def _get_conversation_or_raise(
         self,
         conversation_id: int,
+        *,
+        user_id: int,
     ) -> ConversationSession:
-        user = await self._get_root_user()
         statement = select(ConversationSession).where(
             ConversationSession.id == conversation_id,
-            ConversationSession.user_id == user.id,
+            ConversationSession.user_id == user_id,
             ConversationSession.deleted_at.is_(None),
         )
         conversation = await self.db.scalar(statement)

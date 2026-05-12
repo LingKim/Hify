@@ -6,6 +6,7 @@ import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.auth.errors import AuthErrorCode
 from app.core.auth import AccessTokenPayload, decode_access_token
 from app.core.context import (
     RequestContext,
@@ -37,15 +38,21 @@ def _decode_credentials(
         return None
     if credentials.scheme.lower() != "bearer":
         raise BizException(
-            code=CommonErrorCode.UNAUTHORIZED,
+            code=AuthErrorCode.TOKEN_INVALID,
             message="未登录或登录已过期",
             http_status=401,
         )
     try:
         user = decode_access_token(credentials.credentials)
+    except jwt.ExpiredSignatureError as exc:
+        raise BizException(
+            code=AuthErrorCode.TOKEN_EXPIRED,
+            message="未登录或登录已过期",
+            http_status=401,
+        ) from exc
     except (jwt.InvalidTokenError, ValueError) as exc:
         raise BizException(
-            code=CommonErrorCode.UNAUTHORIZED,
+            code=AuthErrorCode.TOKEN_INVALID,
             message="未登录或登录已过期",
             http_status=401,
         ) from exc
@@ -73,7 +80,7 @@ def get_current_user(
     current_user = _decode_credentials(credentials)
     if current_user is None:
         raise BizException(
-            code=CommonErrorCode.UNAUTHORIZED,
+            code=AuthErrorCode.TOKEN_INVALID,
             message="未登录或登录已过期",
             http_status=401,
         )

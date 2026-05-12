@@ -3,6 +3,8 @@
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.deps import get_current_active_user
+from app.auth.model import User
 from app.core.database import get_db_session
 from app.core.responses import PageResult, Result
 from app.llm.schema import (
@@ -25,8 +27,10 @@ router = APIRouter(prefix="/api/v1/llms", tags=["llm"])
 @router.get("/model-preview", response_model=Result[ModelPreviewResp])
 async def model_preview(
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ModelPreviewResp]:
     """Return the llm module preview payload."""
+    del current_user
     service = LlmService(db)
     return Result.success(data=await service.preview())
 
@@ -38,8 +42,10 @@ async def model_preview(
 async def list_providers(
     params: ProviderListParams = Depends(),
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[PageResult[ProviderSummaryResp]]:
     """Return paginated provider records for the single admin page."""
+    del current_user
     service = LlmService(db)
     return Result.success(data=await service.list_providers(params))
 
@@ -51,8 +57,10 @@ async def list_providers(
 async def get_provider(
     provider_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderDetailResp]:
     """Return one provider detail record."""
+    del current_user
     service = LlmService(db)
     return Result.success(data=await service.get_provider(provider_id))
 
@@ -65,8 +73,10 @@ async def get_provider_runtime_config(
     provider_id: int,
     model_name: str | None = None,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderRuntimeConfigResp]:
     """Return a UI-safe LiteLLM runtime config preview."""
+    del current_user
     service = LlmService(db)
     return Result.success(
         data=await service.get_provider_runtime_config(
@@ -84,8 +94,10 @@ async def get_provider_runtime_config(
 async def create_provider(
     payload: ProviderAdminCreateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderDetailResp]:
     """Create one aggregated provider record."""
+    del current_user
     service = LlmService(db)
     return Result.success(
         data=await service.create_provider(payload),
@@ -101,8 +113,10 @@ async def update_provider(
     provider_id: int,
     payload: ProviderAdminUpdateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderDetailResp]:
     """Update one aggregated provider record."""
+    del current_user
     service = LlmService(db)
     return Result.success(
         data=await service.update_provider(provider_id, payload)
@@ -116,8 +130,10 @@ async def update_provider(
 async def delete_provider(
     provider_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Response:
     """Soft-delete one provider record."""
+    del current_user
     service = LlmService(db)
     await service.delete_provider(provider_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -130,8 +146,10 @@ async def delete_provider(
 async def test_provider_connection(
     provider_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderConnectionTestResp]:
     """Test one provider connection and persist its health snapshot."""
+    del current_user
     service = LlmService(db)
     return Result.success(
         data=await service.test_provider_connection(provider_id)
@@ -146,8 +164,10 @@ async def invoke_provider_test(
     provider_id: int,
     payload: ProviderInvokeTestReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[ProviderInvokeTestResp]:
     """Run one real LiteLLM test invocation for the provider."""
+    del current_user
     service = LlmService(db)
     return Result.success(
         data=await service.invoke_provider_test(provider_id, payload)

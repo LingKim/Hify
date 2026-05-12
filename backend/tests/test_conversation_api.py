@@ -17,7 +17,10 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.agent.model import Agent
+from app.auth.model import User
+from app.auth.password import hash_password
 from app.conversation.model import ConversationMessage, ConversationRun
+from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.database import Base, get_db_session
 from app.llm.executor import LiteLLMExecutor, StreamChunk
 from app.llm.model import ProviderAuthSecret, ProviderInstance, ProviderModel
@@ -66,6 +69,8 @@ class ConversationApiHarness:
     client: httpx.AsyncClient
     session_factory: async_sessionmaker[AsyncSession]
     agent_id: int
+    user_id: int
+    headers: dict[str, str]
     stream_calls: list[dict[str, Any]]
 
 
@@ -95,6 +100,15 @@ async def conversation_api_harness(
 
     codec = ProviderSecretCodec()
     async with session_factory() as session:
+        user = User(
+            username="member",
+            email="member@hify.ai",
+            password_hash=hash_password("Member123!"),
+            role="member",
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
         provider = ProviderInstance(
             name="OpenAI-会话测试",
             provider_type="openai",
@@ -145,6 +159,16 @@ async def conversation_api_harness(
         session.add(agent)
         await session.commit()
         agent_id = agent.id
+        user_id = user.id
+
+    token = create_access_token(
+        AccessTokenPayload(
+            sub=str(user_id),
+            username="member",
+            role="member",
+        )
+    )
+    headers = {"Authorization": f"Bearer {token}"}
 
     async def override_get_db_session():  # type: ignore[no-untyped-def]
         async with session_factory() as session:
@@ -187,6 +211,8 @@ async def conversation_api_harness(
             client=client,
             session_factory=session_factory,
             agent_id=agent_id,
+            user_id=user_id,
+            headers=headers,
             stream_calls=stream_calls,
         )
 
@@ -206,6 +232,7 @@ async def test_create_list_update_and_delete_conversation(
             "agentId": conversation_api_harness.agent_id,
             "title": "售后政策咨询",
         },
+        headers=conversation_api_harness.headers,
     )
 
     assert create_response.status_code == 201
@@ -218,19 +245,24 @@ async def test_create_list_update_and_delete_conversation(
     list_response = await conversation_api_harness.client.get(
         "/api/v1/conversations",
         params={"keyword": "售后", "pageSize": 20},
+        headers=conversation_api_harness.headers,
     )
     detail_response = await conversation_api_harness.client.get(
-        f"/api/v1/conversations/{created['id']}"
+        f"/api/v1/conversations/{created['id']}",
+        headers=conversation_api_harness.headers,
     )
     archive_response = await conversation_api_harness.client.patch(
         f"/api/v1/conversations/{created['id']}",
         json={"status": "archived"},
+        headers=conversation_api_harness.headers,
     )
     delete_response = await conversation_api_harness.client.delete(
-        f"/api/v1/conversations/{created['id']}"
+        f"/api/v1/conversations/{created['id']}",
+        headers=conversation_api_harness.headers,
     )
     missing_response = await conversation_api_harness.client.get(
-        f"/api/v1/conversations/{created['id']}"
+        f"/api/v1/conversations/{created['id']}",
+        headers=conversation_api_harness.headers,
     )
 
     assert list_response.status_code == 200
@@ -251,6 +283,7 @@ async def test_stream_message_persists_messages_and_run(
     create_response = await conversation_api_harness.client.post(
         "/api/v1/conversations",
         json={"agentId": conversation_api_harness.agent_id},
+        headers=conversation_api_harness.headers,
     )
     conversation_id = create_response.json()["data"]["id"]
 
@@ -258,7 +291,10 @@ async def test_stream_message_persists_messages_and_run(
         "POST",
         f"/api/v1/conversations/{conversation_id}/messages/stream",
         json={"content": "退货政策是什么？"},
-        headers={"Accept": "text/event-stream"},
+        headers={
+            **conversation_api_harness.headers,
+            "Accept": "text/event-stream",
+        },
     ) as response:
         body = await response.aread()
 
@@ -271,11 +307,15 @@ async def test_stream_message_persists_messages_and_run(
     assert "event: run.completed" in text_body
     assert "event: done" in text_body
     assert "根据当前" in text_body
-    assert conversation_api_harness.stream_calls[0]["messages"][0]["role"] == "system"
+    assert (
+        conversation_api_harness.stream_calls[0]["messages"][0]["role"]
+        == "system"
+    )
 
     messages_response = await conversation_api_harness.client.get(
         f"/api/v1/conversations/{conversation_id}/messages",
         params={"pageSize": 100},
+        headers=conversation_api_harness.headers,
     )
 
     assert messages_response.status_code == 200

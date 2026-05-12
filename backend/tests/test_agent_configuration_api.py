@@ -16,6 +16,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app.auth.model import User
+from app.auth.password import hash_password
+from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.database import Base, get_db_session
 from app.llm.model import ProviderInstance, ProviderModel
 from app.main import app
@@ -63,6 +66,7 @@ class AgentApiHarness:
     session_factory: async_sessionmaker[AsyncSession]
     provider_instance_id: int
     provider_model_id: int
+    headers: dict[str, str]
 
 
 @pytest_asyncio.fixture
@@ -88,6 +92,15 @@ async def agent_api_harness() -> AgentApiHarness:
     await _create_tables(test_engine)
 
     async with session_factory() as session:
+        user = User(
+            username="member",
+            email="member@hify.ai",
+            password_hash=hash_password("Member123!"),
+            role="member",
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
         provider = ProviderInstance(
             name="OpenAI-测试",
             provider_type="openai",
@@ -111,6 +124,16 @@ async def agent_api_harness() -> AgentApiHarness:
         await session.commit()
         provider_instance_id = provider.id
         provider_model_id = model.id
+        user_id = user.id
+
+    token = create_access_token(
+        AccessTokenPayload(
+            sub=str(user_id),
+            username="member",
+            role="member",
+        )
+    )
+    headers = {"Authorization": f"Bearer {token}"}
 
     async def override_get_db_session():  # type: ignore[no-untyped-def]
         async with session_factory() as session:
@@ -126,12 +149,14 @@ async def agent_api_harness() -> AgentApiHarness:
     async with httpx.AsyncClient(
         transport=transport,
         base_url="http://testserver",
+        headers=headers,
     ) as client:
         yield AgentApiHarness(
             client=client,
             session_factory=session_factory,
             provider_instance_id=provider_instance_id,
             provider_model_id=provider_model_id,
+            headers=headers,
         )
 
     app.dependency_overrides.clear()

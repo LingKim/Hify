@@ -1,9 +1,11 @@
 import { AppBusinessError } from "@/shared/api/errors";
 import { request } from "@/shared/api";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/shared/auth/token";
 
 describe("request", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it("returns the data field when the backend responds successfully", async () => {
@@ -118,6 +120,33 @@ describe("request", () => {
       expect.objectContaining({
         method: "GET",
       }),
+    );
+  });
+
+  it("sends the stored access token as a bearer token", async () => {
+    window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, "stored-token");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 200,
+          message: "success",
+          data: { ok: true },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await request<{ ok: boolean }>({
+      request: "GET /users",
+    });
+
+    const headers = fetchSpy.mock.calls[0]?.[1]?.headers;
+    expect(headers).toBeInstanceOf(Headers);
+    expect((headers as Headers).get("Authorization")).toBe(
+      "Bearer stored-token",
     );
   });
 });

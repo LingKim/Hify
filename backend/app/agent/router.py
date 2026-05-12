@@ -13,6 +13,8 @@ from app.agent.schema import (
     AgentSummaryResp,
 )
 from app.agent.service import AgentService
+from app.auth.deps import get_current_active_user
+from app.auth.model import User
 from app.core.database import get_db_session
 from app.core.responses import PageResult, Result
 
@@ -22,8 +24,10 @@ router = APIRouter(prefix="/api/v1/agents", tags=["agent"])
 @router.get("/config-preview", response_model=Result[AgentConfigPreviewResp])
 async def config_preview(
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[AgentConfigPreviewResp]:
     """Return the legacy agent module preview endpoint response."""
+    del current_user
     service = AgentService(db)
     return Result.success(data=await service.preview())
 
@@ -32,8 +36,10 @@ async def config_preview(
 async def list_agents(
     params: AgentListParams = Depends(),
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[PageResult[AgentSummaryResp]]:
     """Return paginated agent configuration summaries."""
+    del current_user
     service = AgentService(db)
     return Result.success(data=await service.list_agents(params))
 
@@ -42,8 +48,10 @@ async def list_agents(
 async def get_agent(
     agent_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[AgentDetailResp]:
     """Return one aggregated agent configuration."""
+    del current_user
     service = AgentService(db)
     return Result.success(data=await service.get_agent(agent_id))
 
@@ -56,8 +64,10 @@ async def get_agent(
 async def create_agent(
     payload: AgentAdminCreateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[AgentDetailResp]:
     """Create one aggregated agent configuration."""
+    del current_user
     service = AgentService(db)
     return Result.success(
         data=await service.create_agent(payload),
@@ -70,8 +80,10 @@ async def update_agent(
     agent_id: int,
     payload: AgentAdminUpdateReq,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[AgentDetailResp]:
     """Update one aggregated agent configuration."""
+    del current_user
     service = AgentService(db)
     return Result.success(data=await service.update_agent(agent_id, payload))
 
@@ -80,8 +92,10 @@ async def update_agent(
 async def delete_agent(
     agent_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Response:
     """Soft-delete one agent configuration."""
+    del current_user
     service = AgentService(db)
     await service.delete_agent(agent_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -94,7 +108,9 @@ async def delete_agent(
 async def get_agent_config_preview(
     agent_id: int,
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_active_user),
 ) -> Result[AgentRuntimePreviewResp]:
     """Return a UI-safe agent runtime configuration preview."""
+    del current_user
     service = AgentService(db)
     return Result.success(data=await service.get_agent_config_preview(agent_id))

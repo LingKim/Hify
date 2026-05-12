@@ -11,11 +11,31 @@ class LoginPreviewResp(BaseModel):
     capabilities: list[str]
 
 
+class LoginReq(BaseModel):
+    """Login payload for local account authentication."""
+
+    account: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=128)
+
+
 class CurrentUserResp(BaseModel):
     """Current authenticated user payload."""
 
     model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 
-    user_id: str = Field(alias="userId")
+    id: int
     username: str
+    email: str
     role: str
+    role_label: str = Field(alias="roleLabel")
+
+
+class LoginResp(BaseModel):
+    """Login response with access token and current user."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    access_token: str = Field(alias="accessToken")
+    token_type: str = Field(alias="tokenType")
+    expires_in: int = Field(alias="expiresIn")
+    user: CurrentUserResp

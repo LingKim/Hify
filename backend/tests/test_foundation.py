@@ -2,6 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient, MockTransport, Request, Response
 
+from app.auth.deps import get_current_active_user
+from app.auth.model import User
 from app.core.auth import (
     AccessTokenPayload,
     create_access_token,
@@ -85,22 +87,38 @@ def test_auth_me_returns_current_user_from_token() -> None:
     client = TestClient(app)
     token = create_access_token(
         AccessTokenPayload(
-            sub="user-1",
+            sub="1",
             username="demo",
             role="admin",
         )
     )
 
-    response = client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    async def override_current_user() -> User:
+        return User(
+            id=1,
+            username="demo",
+            email="demo@hify.ai",
+            password_hash="hashed",
+            role="admin",
+            is_active=True,
+        )
+
+    app.dependency_overrides[get_current_active_user] = override_current_user
+    try:
+        response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert response.json()["data"] == {
-        "userId": "user-1",
+        "id": 1,
         "username": "demo",
+        "email": "demo@hify.ai",
         "role": "admin",
+        "roleLabel": "管理员",
     }
 
 

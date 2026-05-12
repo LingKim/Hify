@@ -36,6 +36,7 @@ import { getErrorMessage } from "@/shared/api";
 import {
   FrameView,
   ListTable,
+  MarkdownRenderer,
   type ListTableColumn,
   type ListTableRef,
 } from "@/shared/ui";
@@ -229,7 +230,11 @@ export function ConversationLogPage(): JSX.Element {
                 children: (
                   <div className="conversation-log-message">
                     <Typography.Text strong>{item.role}</Typography.Text>
-                    <Typography.Paragraph>{item.content}</Typography.Paragraph>
+                    {item.role === "assistant" ? (
+                      <MarkdownRenderer content={item.content} />
+                    ) : (
+                      <Typography.Paragraph>{item.content}</Typography.Paragraph>
+                    )}
                   </div>
                 ),
               }))}

@@ -18,6 +18,7 @@ import type {
   ConversationRecord,
   ConversationStatus,
 } from "@/domain/conversation/types";
+import { MarkdownRenderer } from "@/shared/ui";
 
 export const conversationStatusOptions: Array<{
   label: string;
@@ -147,7 +148,17 @@ export function MessageBubble({
         } ${message.status === "failed" ? "conversation-message-bubble-error" : ""}`}
       >
         <div className="conversation-message-content">
-          {message.content || (message.status === "streaming" ? "正在生成..." : "")}
+          {message.content ? (
+            isUser ? (
+              message.content
+            ) : (
+              <MarkdownRenderer content={message.content} />
+            )
+          ) : message.status === "streaming" ? (
+            "正在生成..."
+          ) : (
+            ""
+          )}
         </div>
         <div className="conversation-message-meta">
           <Space size={6}>

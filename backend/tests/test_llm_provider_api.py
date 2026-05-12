@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 import uuid
 from dataclasses import dataclass
@@ -9,8 +8,7 @@ from typing import Any
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -18,12 +16,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app.auth.model import User
+from app.auth.password import hash_password
+from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.database import Base, get_db_session
 from app.core.http import ExternalResponse
 from app.llm.executor import InvokeResult, LiteLLMExecutor
 from app.llm.model import ProviderHealthStatus, ProviderInstance
 from app.main import app
-from app.llm.service import LlmService
 
 
 def _database_url() -> str:
@@ -68,6 +68,7 @@ class ProviderApiHarness:
     session_factory: async_sessionmaker[AsyncSession]
     http_state: dict[str, Any]
     invoke_state: dict[str, Any]
+    headers: dict[str, str]
 
 
 @pytest_asyncio.fixture
@@ -93,6 +94,27 @@ async def provider_api_harness(
 
     await _create_schema(admin_engine, schema_name)
     await _create_tables(test_engine)
+
+    async with session_factory() as session:
+        user = User(
+            username="member",
+            email="member@hify.ai",
+            password_hash=hash_password("Member123!"),
+            role="member",
+            is_active=True,
+        )
+        session.add(user)
+        await session.commit()
+        user_id = user.id
+
+    token = create_access_token(
+        AccessTokenPayload(
+            sub=str(user_id),
+            username="member",
+            role="member",
+        )
+    )
+    headers = {"Authorization": f"Bearer {token}"}
 
     async def override_get_db_session():  # type: ignore[no-untyped-def]
         async with session_factory() as session:
@@ -180,12 +202,14 @@ async def provider_api_harness(
     async with httpx.AsyncClient(
         transport=transport,
         base_url="http://testserver",
+        headers=headers,
     ) as client:
         yield ProviderApiHarness(
             client=client,
             session_factory=session_factory,
             http_state=http_state,
             invoke_state=invoke_state,
+            headers=headers,
         )
 
     app.dependency_overrides.clear()
@@ -351,7 +375,10 @@ async def test_update_provider_preserves_secret_when_frontend_omits_it(
     provider_api_harness: ProviderApiHarness,
 ) -> None:
     created = await _create_provider(provider_api_harness)
-    updated_payload = _deepseek_payload(name="DeepSeek 生产实例", secret_value=None)
+    updated_payload = _deepseek_payload(
+        name="DeepSeek 生产实例",
+        secret_value=None,
+    )
     updated_payload["priority"] = 120
 
     response = await provider_api_harness.client.put(
@@ -446,7 +473,9 @@ async def test_invoke_provider_test_returns_executor_output(
         "outputText": "pong",
         "latencyMs": 321,
     }
-    runtime_config = provider_api_harness.invoke_state["calls"][0]["runtime_config"]
+    runtime_config = provider_api_harness.invoke_state["calls"][0][
+        "runtime_config"
+    ]
     assert runtime_config.model_name == "deepseek-reasoner"
     assert runtime_config.litellm_model == "openai/deepseek-reasoner"
 

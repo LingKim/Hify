@@ -1,5 +1,6 @@
 import { getApiBasePath } from "@/shared/config/env";
 import { AppBusinessError, AppRequestError, AppResponseFormatError } from "@/shared/api/errors";
+import { getAccessToken } from "@/shared/auth/token";
 import type {
   ApiResponseEnvelope,
   ParsedRequestDescriptor,
@@ -98,6 +99,11 @@ function buildBody(body: RequestDescriptor["body"]): BodyInit | null | undefined
 
 function buildHeaders(headers: HeadersInit | undefined, body: RequestDescriptor["body"]): Headers {
   const finalHeaders = new Headers(headers);
+  const accessToken = getAccessToken();
+
+  if (accessToken !== null && accessToken !== "" && !finalHeaders.has("Authorization")) {
+    finalHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
 
   if (
     body !== undefined &&

@@ -15,6 +15,7 @@ OPENAPI_TAGS = [
     {"name": "agent", "description": "Agent 配置与管理接口"},
     {"name": "knowledge", "description": "知识库与检索接口"},
     {"name": "conversation", "description": "对话与编排接口"},
+    {"name": "user", "description": "用户管理接口"},
 ]
 
 

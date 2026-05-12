@@ -3,11 +3,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schema import CurrentUserResp, LoginPreviewResp
+from app.auth.deps import get_current_active_user
+from app.auth.model import User
+from app.auth.schema import (
+    CurrentUserResp,
+    LoginPreviewResp,
+    LoginReq,
+    LoginResp,
+)
 from app.auth.service import AuthService
-from app.core.auth import AccessTokenPayload
 from app.core.database import get_db_session
-from app.core.deps import get_current_user
 from app.core.responses import Result
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -22,15 +27,21 @@ async def login_preview(
     return Result.success(data=await service.preview())
 
 
+@router.post("/login", response_model=Result[LoginResp])
+async def login(
+    payload: LoginReq,
+    db: AsyncSession = Depends(get_db_session),
+) -> Result[LoginResp]:
+    """Authenticate one local account and return a JWT access token."""
+    service = AuthService(db)
+    return Result.success(data=await service.login(payload))
+
+
 @router.get("/me", response_model=Result[CurrentUserResp])
 async def me(
-    current_user: AccessTokenPayload = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db_session),
 ) -> Result[CurrentUserResp]:
     """Return the current authenticated user."""
-    return Result.success(
-        data=CurrentUserResp(
-            userId=current_user.sub,
-            username=current_user.username,
-            role=current_user.role,
-        )
-    )
+    service = AuthService(db)
+    return Result.success(data=service.build_current_user(current_user))

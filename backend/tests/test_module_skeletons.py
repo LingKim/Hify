@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.model import Agent
 from app.agent.service import AgentService
+from app.auth.deps import get_current_active_user
 from app.auth.model import User
 from app.auth.service import AuthService
 from app.conversation.model import Conversation
@@ -39,9 +40,23 @@ def test_module_preview_endpoints_return_result_payload(
     path: str,
     module_name: str,
 ) -> None:
+    async def override_current_user() -> User:
+        return User(
+            id=1,
+            username="member",
+            email="member@hify.ai",
+            password_hash="hashed",
+            role="member",
+            is_active=True,
+        )
+
+    app.dependency_overrides[get_current_active_user] = override_current_user
     client = TestClient(app)
 
-    response = client.get(path)
+    try:
+        response = client.get(path)
+    finally:
+        app.dependency_overrides.clear()
 
     assert response.status_code == 200
     payload = response.json()

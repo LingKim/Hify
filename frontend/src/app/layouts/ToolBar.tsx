@@ -10,6 +10,15 @@ function buildBreadcrumb(pathname: string): { title: string }[] {
   if (pathname === "/agents") {
     return [{ title: "运营后台" }, { title: "Agent 配置" }];
   }
+  if (pathname === "/users") {
+    return [{ title: "运营后台" }, { title: "用户管理" }];
+  }
+  if (pathname === "/conversations") {
+    return [{ title: "运营后台" }, { title: "会话日志" }];
+  }
+  if (pathname === "/chat") {
+    return [{ title: "应用" }, { title: "对话使用" }];
+  }
   if (pathname === "/playground/api-preview") {
     return [{ title: "Playground" }, { title: "联调预览" }];
   }

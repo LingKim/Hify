@@ -1,0 +1,138 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]: Hify
+          - generic [ref=e10]: AI Agent Platform
+        - menu [ref=e11]:
+          - menuitem "home 首页" [ref=e12] [cursor=pointer]:
+            - img "home" [ref=e13]:
+              - img [ref=e14]
+            - generic [ref=e16]: 首页
+          - menuitem "robot 模型提供商" [ref=e17] [cursor=pointer]:
+            - img "robot" [ref=e18]:
+              - img [ref=e19]
+            - generic [ref=e21]: 模型提供商
+          - menuitem "robot Agent 配置" [ref=e22] [cursor=pointer]:
+            - img "robot" [ref=e23]:
+              - img [ref=e24]
+            - generic [ref=e26]: Agent 配置
+          - menuitem "comment 对话使用" [ref=e27] [cursor=pointer]:
+            - img "comment" [ref=e28]:
+              - img [ref=e29]
+            - generic [ref=e33]: 对话使用
+          - menuitem "profile 会话日志" [ref=e34] [cursor=pointer]:
+            - img "profile" [ref=e35]:
+              - img [ref=e36]
+            - generic [ref=e38]: 会话日志
+          - menuitem "user 用户管理" [ref=e39] [cursor=pointer]:
+            - img "user" [ref=e40]:
+              - img [ref=e41]
+            - generic [ref=e43]: 用户管理
+          - menuitem "api 联调预览" [ref=e44] [cursor=pointer]:
+            - img "api" [ref=e45]:
+              - img [ref=e46]
+            - generic [ref=e48]: 联调预览
+          - menuitem "appstore 公共组件" [ref=e49] [cursor=pointer]:
+            - img "appstore" [ref=e50]:
+              - img [ref=e51]
+            - generic [ref=e53]: 公共组件
+      - generic [ref=e54]:
+        - generic [ref=e55]: v0.1.0
+        - button "收起侧栏" [ref=e56] [cursor=pointer]:
+          - img "menu-fold" [ref=e57]:
+            - img [ref=e58]
+  - generic [ref=e60]:
+    - generic [ref=e61]:
+      - generic [ref=e63]:
+        - generic [ref=e65] [cursor=pointer]: 首页
+        - generic [ref=e66] [cursor=pointer]:
+          - generic [ref=e67]: 用户管理
+          - img "close" [ref=e69]:
+            - img [ref=e70]
+      - generic [ref=e72] [cursor=pointer]:
+        - img "user" [ref=e74]:
+          - img [ref=e75]
+        - generic [ref=e77]: Admin
+    - generic [ref=e78]:
+      - navigation [ref=e79]:
+        - list [ref=e80]:
+          - listitem [ref=e81]: 未知页面
+      - button "打开界面设置" [ref=e83] [cursor=pointer]:
+        - img "setting" [ref=e85]:
+          - img [ref=e86]
+    - main [ref=e88]:
+      - generic [ref=e90]:
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - heading "用户管理" [level=2] [ref=e94]
+            - generic [ref=e95]: 管理 Hify 内部账号、角色和启用状态。
+          - button "plus 新增用户" [ref=e96] [cursor=pointer]:
+            - img "plus" [ref=e98]:
+              - img [ref=e99]
+            - generic [ref=e102]: 新增用户
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - generic [ref=e107]:
+              - generic "关键词" [ref=e109]
+              - textbox "搜索用户名或邮箱" [ref=e114]
+            - generic [ref=e117]:
+              - generic "角色" [ref=e119]
+              - generic [ref=e123] [cursor=pointer]:
+                - generic [ref=e124]:
+                  - generic: 全部角色
+                  - combobox [ref=e125]
+                - img "down" [ref=e127]:
+                  - img [ref=e128]
+            - generic [ref=e131]:
+              - generic "状态" [ref=e133]
+              - generic [ref=e137] [cursor=pointer]:
+                - generic [ref=e138]:
+                  - generic: 全部状态
+                  - combobox [ref=e139]
+                - img "down" [ref=e141]:
+                  - img [ref=e142]
+          - generic [ref=e144]:
+            - button "查 询" [ref=e145] [cursor=pointer]:
+              - generic [ref=e146]: 查 询
+            - button "重 置" [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]: 重 置
+        - generic [ref=e149]:
+          - generic [ref=e152]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - table:
+                      - rowgroup:
+                        - row "用户 角色 状态 最后登录 创建时间 操作":
+                          - columnheader "用户"
+                          - columnheader "角色"
+                          - columnheader "状态"
+                          - columnheader "最后登录"
+                          - columnheader "创建时间"
+                          - columnheader "操作"
+                      - rowgroup:
+                        - row "暂无数据":
+                          - cell "暂无数据":
+                            - generic: 暂无数据
+          - list [ref=e161]:
+            - listitem [ref=e162]: 共 0 条
+            - listitem "Previous Page" [ref=e163]:
+              - button "left" [disabled] [ref=e164]:
+                - img "left" [ref=e165]:
+                  - img [ref=e166]
+            - listitem "1" [ref=e168] [cursor=pointer]:
+              - generic [ref=e169]: "1"
+            - listitem "Next Page" [ref=e170]:
+              - button "right" [disabled] [ref=e171]:
+                - img "right" [ref=e172]:
+                  - img [ref=e173]
+            - listitem [ref=e175]:
+              - generic [ref=e176]:
+                - generic "10 / page" [ref=e177]:
+                  - text: 10 / page
+                  - combobox "Page Size" [ref=e178]
+                - img "down" [ref=e180]:
+                  - img [ref=e181]
