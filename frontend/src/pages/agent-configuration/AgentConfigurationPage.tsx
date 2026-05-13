@@ -231,8 +231,11 @@ export function AgentConfigurationPage(): JSX.Element {
         key: "knowledgeBases",
         label: "知识库绑定",
         colProps: { span: 24 },
-        render: ({ value }) => (
-          <KnowledgeBindingsField value={value} />
+        render: ({ value, onChange }) => (
+          <KnowledgeBindingsField
+            value={value}
+            onChange={(nextBindings) => onChange(nextBindings)}
+          />
         ),
       },
     ],

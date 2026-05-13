@@ -10,6 +10,7 @@ from app.conversation.schema import (
     ConversationAgentModelResp,
     ConversationAgentRuntimePreviewResp,
     ConversationDetailResp,
+    ConversationKnowledgeSourceResp,
     ConversationMessageResp,
     ConversationSummaryResp,
 )
@@ -112,9 +113,45 @@ def build_message_response(
         latencyMs=message.latency_ms,
         modelSnapshot=message.model_snapshot_json,
         error=message.error_json,
+        knowledgeSources=build_message_knowledge_sources(message),
         createdAt=message.created_at,
         updatedAt=message.updated_at,
     )
+
+
+def build_message_knowledge_sources(
+    message: ConversationMessage,
+) -> list[ConversationKnowledgeSourceResp]:
+    """Return knowledge sources stored on an assistant message."""
+    metadata = message.metadata_json or {}
+    rag = metadata.get("rag")
+    if not isinstance(rag, dict):
+        return []
+
+    sources = rag.get("sources")
+    if not isinstance(sources, list):
+        return []
+
+    result: list[ConversationKnowledgeSourceResp] = []
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        result.append(
+            ConversationKnowledgeSourceResp(
+                chunkId=int(source.get("chunkId") or 0),
+                documentId=int(source.get("documentId") or 0),
+                documentName=str(source.get("documentName") or "未知文档"),
+                score=float(source.get("score") or 0),
+                pageNumber=source.get("pageNumber"),
+                sectionTitle=source.get("sectionTitle"),
+                snippet=source.get("snippet"),
+            )
+        )
+    return [
+        source
+        for source in result
+        if source.chunk_id > 0 and source.document_id > 0
+    ]
 
 
 def build_runtime_preview_response(
@@ -130,7 +167,9 @@ def build_runtime_preview_response(
         model_payload = ConversationAgentModelResp(
             providerInstanceId=model.provider_instance_id,
             providerName=provider.name if provider is not None else None,
-            providerType=provider.provider_type if provider is not None else None,
+            providerType=(
+                provider.provider_type if provider is not None else None
+            ),
             modelId=model.id,
             modelName=model.model_name,
             displayName=model.display_name,

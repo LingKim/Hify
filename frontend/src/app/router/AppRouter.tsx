@@ -11,6 +11,7 @@ import { AgentConfigurationPage } from "@/pages/agent-configuration/AgentConfigu
 import { LandingPage } from "@/pages/landing/LandingPage";
 import { ChatPage } from "@/pages/chat/ChatPage";
 import { ConversationLogPage } from "@/pages/conversation/ConversationLogPage";
+import { KnowledgePage } from "@/pages/knowledge/KnowledgePage";
 import { UserManagementPage } from "@/pages/user-management/UserManagementPage";
 import { LoginPage } from "@/pages/login/LoginPage";
 import { clearAccessToken, getAccessToken } from "@/shared/auth/token";
@@ -26,6 +27,7 @@ export function AppRouter(): JSX.Element {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/conversations" element={<ConversationLogPage />} />
         <Route path="/agents" element={<AgentConfigurationPage />} />
+        <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/users" element={<UserManagementPage />} />
         <Route path="/providers" element={<ProviderManagementPage />} />
         <Route path="/playground/api-preview" element={<ApiPreviewPage />} />

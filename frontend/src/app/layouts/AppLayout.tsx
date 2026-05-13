@@ -1,6 +1,7 @@
 import {
   ApiOutlined,
   AppstoreOutlined,
+  BookOutlined,
   CommentOutlined,
   HomeOutlined,
   MenuFoldOutlined,
@@ -38,6 +39,11 @@ const navigationItems: ItemType[] = [
     label: "Agent 配置",
   },
   {
+    key: "/knowledge",
+    icon: <BookOutlined />,
+    label: "知识库",
+  },
+  {
     key: "/chat",
     icon: <CommentOutlined />,
     label: "对话使用",
@@ -67,6 +73,7 @@ const navigationItems: ItemType[] = [
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
   "/agents": "Agent 配置",
+  "/knowledge": "知识库",
   "/chat": "对话使用",
   "/conversations": "会话日志",
   "/providers": "模型提供商管理",

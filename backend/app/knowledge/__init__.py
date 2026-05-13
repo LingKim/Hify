@@ -6,6 +6,7 @@ from app.knowledge.embedding import (
     SiliconFlowEmbeddingClient,
     create_embedding_client,
 )
+from app.knowledge.processor import extract_text_from_file, split_text
 from app.knowledge.service import KnowledgeService
 from app.knowledge.vector import build_vector_literal, cosine_search_sql
 
@@ -17,4 +18,6 @@ __all__ = [
     "build_vector_literal",
     "cosine_search_sql",
     "create_embedding_client",
+    "extract_text_from_file",
+    "split_text",
 ]

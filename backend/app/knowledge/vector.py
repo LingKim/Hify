@@ -2,8 +2,9 @@
 
 from collections.abc import Sequence
 
-from sqlalchemy import text
+from sqlalchemy import cast, text
 from sqlalchemy.sql.elements import TextClause
+from sqlalchemy.types import UserDefinedType
 
 SAFE_IDENTIFIER_CHARS = set(
     "abcdefghijklmnopqrstuvwxyz"
@@ -11,6 +12,19 @@ SAFE_IDENTIFIER_CHARS = set(
     "0123456789"
     "_"
 )
+
+
+class PgVector(UserDefinedType):
+    """SQLAlchemy binding for pgvector values stored as vector literals."""
+
+    cache_ok = True
+
+    def get_col_spec(self, **kwargs: object) -> str:
+        del kwargs
+        return "public.vector"
+
+    def bind_expression(self, bindvalue: object) -> object:
+        return cast(bindvalue, self)
 
 
 def build_vector_literal(vector: Sequence[float]) -> str:
@@ -43,14 +57,15 @@ def cosine_search_sql(
         for column in selected_columns
     ]
     selected = ",\n            ".join(columns)
+    distance = f"{embedding} <=> CAST(:query_embedding AS public.vector)"
 
     return text(
         f"""
         SELECT
             {selected},
-            1 - ({embedding} <=> CAST(:query_embedding AS vector)) AS similarity
+            1 - ({distance}) AS similarity
         FROM {table}
-        ORDER BY {embedding} <=> CAST(:query_embedding AS vector)
+        ORDER BY {distance}
         LIMIT :limit
         """
     )

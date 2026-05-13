@@ -18,6 +18,8 @@ import type {
   ProviderModelRecord,
   ProviderSummaryRecord,
 } from "@/domain/provider-management/types";
+import { fetchKnowledgeBaseOptions } from "@/domain/knowledge/service";
+import type { KnowledgeBaseOption } from "@/domain/knowledge/types";
 
 export const agentStatusOptions: Array<{ label: string; value: AgentStatus }> = [
   { label: "草稿", value: "draft" },
@@ -233,20 +235,66 @@ export function ToolBindingsField({
 
 export function KnowledgeBindingsField({
   value,
+  onChange,
 }: {
   value: unknown;
+  onChange: (value: AgentKnowledgeBinding[]) => void;
 }): JSX.Element {
   const bindings = Array.isArray(value)
     ? (value as AgentKnowledgeBinding[])
     : [];
+  const knowledgeBaseOptionsQuery = useQuery({
+    queryKey: ["knowledge", "options", "agent-binding"],
+    queryFn: ({ signal }) => fetchKnowledgeBaseOptions(signal),
+  });
+  const selectedIds = bindings
+    .filter((item) => item.isEnabled)
+    .map((item) => item.knowledgeBaseId);
+  const options = useMemo(
+    () =>
+      (knowledgeBaseOptionsQuery.data ?? []).map((item) =>
+        buildKnowledgeBaseOption(item),
+      ),
+    [knowledgeBaseOptionsQuery.data],
+  );
+
   return (
     <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-      <Alert
-        showIcon
-        type="info"
-        title="知识库模块完成后，将在这里从知识库列表选择绑定。"
-        description="当前不再让业务用户手动输入知识库 ID；已有绑定会保留并随表单一起保存。"
+      <Select
+        allowClear
+        mode="multiple"
+        optionFilterProp="label"
+        loading={knowledgeBaseOptionsQuery.isFetching}
+        placeholder="选择要让 Agent 检索的知识库"
+        options={options}
+        value={selectedIds}
+        onChange={(nextIds: number[]) => {
+          onChange(
+            nextIds.map((knowledgeBaseId, index) => {
+              const existingBinding = bindings.find(
+                (binding) =>
+                  binding.knowledgeBaseId === knowledgeBaseId,
+              );
+              return {
+                knowledgeBaseId,
+                isEnabled: true,
+                sortOrder: existingBinding?.sortOrder ?? index,
+                retrievalConfig:
+                  existingBinding?.retrievalConfig ?? null,
+                metadata: existingBinding?.metadata ?? null,
+              };
+            }),
+          );
+        }}
       />
+      {knowledgeBaseOptionsQuery.data?.length === 0 ? (
+        <Alert
+          showIcon
+          type="warning"
+          message="暂无可绑定知识库"
+          description="请先创建并启用知识库，上传文档完成索引后再绑定到 Agent。"
+        />
+      ) : null}
       {bindings.length > 0 ? (
         <Space size={[6, 6]} wrap>
           {bindings.map((item) => (
@@ -256,4 +304,12 @@ export function KnowledgeBindingsField({
       ) : null}
     </Space>
   );
+}
+
+function buildKnowledgeBaseOption(item: KnowledgeBaseOption) {
+  return {
+    value: item.id,
+    label: item.name,
+    title: item.name,
+  };
 }

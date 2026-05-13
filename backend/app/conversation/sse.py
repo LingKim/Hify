@@ -71,7 +71,10 @@ async def stream_events(
             },
         },
     )
-    yield sse("run.completed", {"runId": prepared.run.id, "status": "completed"})
+    yield sse(
+        "run.completed",
+        {"runId": prepared.run.id, "status": "completed"},
+    )
     yield sse(
         "done",
         {"runId": prepared.run.id, "conversationId": prepared.conversation.id},
@@ -89,7 +92,16 @@ def compact_message(message: Any) -> dict[str, Any]:
         "createdAt": message.created_at.isoformat()
         if message.created_at is not None
         else None,
+        "knowledgeSources": compact_knowledge_sources(message),
     }
+
+
+def compact_knowledge_sources(message: Any) -> list[dict[str, Any]]:
+    """Return UI-safe knowledge sources from message metadata."""
+    metadata = getattr(message, "metadata_json", None) or {}
+    rag = metadata.get("rag") if isinstance(metadata, dict) else None
+    sources = rag.get("sources") if isinstance(rag, dict) else None
+    return sources if isinstance(sources, list) else []
 
 
 def sse(event: str, data: dict[str, Any]) -> str:

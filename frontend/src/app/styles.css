@@ -65,6 +65,314 @@ body {
   font-size: 12px;
 }
 
+.knowledge-page {
+  display: grid;
+  gap: 20px;
+}
+
+.knowledge-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.knowledge-topbar .ant-typography {
+  max-width: 760px;
+  margin-bottom: 0;
+}
+
+.knowledge-workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 18px;
+  min-height: calc(100vh - 210px);
+}
+
+.knowledge-rail,
+.knowledge-detail {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.knowledge-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+}
+
+.knowledge-rail-meta,
+.knowledge-breadcrumb,
+.knowledge-muted {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.knowledge-rail-meta {
+  display: flex;
+  justify-content: space-between;
+}
+
+.knowledge-kb-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.knowledge-kb-card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-body);
+  background: color-mix(in oklch, var(--panel-bg) 92%, var(--page-bg));
+  text-align: left;
+  cursor: pointer;
+}
+
+.knowledge-kb-card-active,
+.knowledge-kb-card:hover {
+  border-color: color-mix(in oklch, var(--brand) 32%, var(--border-default));
+  background: color-mix(in oklch, var(--brand) 8%, var(--panel-bg));
+}
+
+.knowledge-kb-card-active::before {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: -1px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--brand);
+  content: "";
+}
+
+.knowledge-kb-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.knowledge-kb-card-desc {
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.knowledge-kb-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.knowledge-kb-card-stats strong {
+  display: block;
+  color: var(--text-strong);
+  font-size: 16px;
+}
+
+.knowledge-detail {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.knowledge-center {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+}
+
+.knowledge-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-default);
+  background: color-mix(in oklch, var(--brand) 5%, var(--panel-bg));
+}
+
+.knowledge-hero .ant-typography {
+  margin-bottom: 8px;
+}
+
+.knowledge-health-panel {
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  min-height: 164px;
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--panel-bg) 86%, var(--page-bg));
+}
+
+.knowledge-health-ring {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.knowledge-body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.knowledge-section.ant-card {
+  border-radius: var(--radius-lg);
+}
+
+.knowledge-drop-zone {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px dashed color-mix(in oklch, var(--brand) 42%, var(--border-default));
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--brand) 8%, var(--panel-bg));
+}
+
+.knowledge-drop-zone span {
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.knowledge-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.knowledge-metric {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--panel-bg) 88%, var(--page-bg));
+}
+
+.knowledge-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.knowledge-doc-list,
+.knowledge-hit-list,
+.knowledge-agent-list,
+.knowledge-side-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.knowledge-doc-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto 86px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-default);
+}
+
+.knowledge-file-icon {
+  display: grid;
+  width: 34px;
+  height: 38px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--brand);
+  background: color-mix(in oklch, var(--brand) 10%, var(--panel-bg));
+}
+
+.knowledge-doc-main {
+  display: grid;
+  min-width: 0;
+}
+
+.knowledge-retrieval-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.knowledge-retrieval-input .ant-form-item {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.knowledge-hit,
+.knowledge-agent-item {
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--panel-bg) 88%, var(--page-bg));
+}
+
+.knowledge-hit-meta,
+.knowledge-agent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledge-hit-meta {
+  margin-bottom: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.knowledge-hit-meta strong {
+  color: var(--brand);
+}
+
+.knowledge-hit p {
+  margin: 0;
+  color: var(--text-body);
+  line-height: 1.7;
+}
+
+.knowledge-empty {
+  padding: 32px 0;
+}
+
+@media (max-width: 1180px) {
+  .knowledge-workspace,
+  .knowledge-hero,
+  .knowledge-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .knowledge-topbar {
+    display: grid;
+  }
+
+  .knowledge-doc-row {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .knowledge-doc-row .ant-progress {
+    grid-column: 2 / 3;
+  }
+}
+
 .conversation-agent-select {
   width: min(360px, 100%);
 }
@@ -118,22 +426,42 @@ body {
 }
 
 .conversation-list-item {
+  position: relative;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px 12px 16px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--text-body);
   background: transparent;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
-.conversation-list-item:hover,
+.conversation-list-item:hover {
+  border-color: color-mix(in oklch, var(--border-default) 72%, var(--brand));
+  background: color-mix(in oklch, var(--panel-bg) 88%, var(--page-bg));
+}
+
 .conversation-list-item-active {
-  border-color: color-mix(in oklch, var(--brand) 22%, var(--border-default));
-  background: color-mix(in oklch, var(--brand) 8%, var(--panel-bg));
+  border-color: color-mix(in oklch, var(--brand) 28%, var(--border-default));
+  background: color-mix(in oklch, var(--brand) 6%, var(--panel-bg));
+}
+
+.conversation-list-item-active::before {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: -1px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--brand);
+  content: "";
 }
 
 .conversation-list-item-title {
@@ -150,6 +478,15 @@ body {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.conversation-list-item-active .conversation-list-item-title {
+  color: var(--text-body);
+}
+
+.conversation-list-item-active .conversation-list-item-meta,
+.conversation-list-item-active .conversation-list-item-preview {
+  color: color-mix(in oklch, var(--text-body) 72%, var(--text-soft));
 }
 
 .chat-main {
@@ -210,9 +547,9 @@ body {
 }
 
 .conversation-message-bubble-user {
-  color: var(--color-bg-light);
-  border-color: color-mix(in oklch, var(--brand) 62%, var(--border-default));
-  background: var(--brand);
+  color: var(--text-body);
+  border-color: color-mix(in oklch, var(--brand) 24%, var(--border-default));
+  background: color-mix(in oklch, var(--brand) 9%, var(--panel-bg));
 }
 
 .conversation-message-bubble-error {
@@ -229,6 +566,23 @@ body {
   white-space: normal;
 }
 
+.conversation-knowledge-sources {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-default);
+}
+
+.conversation-knowledge-source-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .conversation-message-meta {
   margin-top: 8px;
   color: var(--text-soft);
@@ -236,7 +590,7 @@ body {
 }
 
 .conversation-message-bubble-user .conversation-message-meta {
-  color: color-mix(in oklch, var(--color-bg-light) 78%, var(--brand));
+  color: color-mix(in oklch, var(--text-body) 58%, var(--text-soft));
 }
 
 .chat-input-bar {

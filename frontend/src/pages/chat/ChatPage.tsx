@@ -60,6 +60,7 @@ function createLocalMessage(
     latencyMs: null,
     modelSnapshot: null,
     error: null,
+    knowledgeSources: [],
     createdAt: now,
     updatedAt: now,
     isLocal: true,
@@ -214,6 +215,7 @@ export function ChatPage(): JSX.Element {
               sequence: event.userMessage.sequence,
               createdAt: event.userMessage.createdAt,
               updatedAt: event.userMessage.createdAt,
+              knowledgeSources: event.userMessage.knowledgeSources ?? [],
             },
             {
               ...createLocalMessage(
@@ -226,6 +228,8 @@ export function ChatPage(): JSX.Element {
               sequence: event.assistantMessage.sequence,
               createdAt: event.assistantMessage.createdAt,
               updatedAt: event.assistantMessage.createdAt,
+              knowledgeSources:
+                event.assistantMessage.knowledgeSources ?? [],
             },
           ]);
         },
@@ -248,6 +252,7 @@ export function ChatPage(): JSX.Element {
                     content: event.message.content,
                     status: event.message.status,
                     sequence: event.message.sequence,
+                    knowledgeSources: event.message.knowledgeSources ?? [],
                   }
                 : item,
             ),

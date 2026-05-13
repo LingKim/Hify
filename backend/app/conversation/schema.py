@@ -11,7 +11,13 @@ from app.core.responses import PageParams
 
 ConversationStatus = Literal["active", "archived"]
 MessageRole = Literal["user", "assistant", "system", "tool"]
-MessageStatus = Literal["pending", "streaming", "completed", "failed", "cancelled"]
+MessageStatus = Literal[
+    "pending",
+    "streaming",
+    "completed",
+    "failed",
+    "cancelled",
+]
 
 
 class ConversationChatPreviewResp(BaseModel):
@@ -137,7 +143,10 @@ class ConversationSummaryResp(BaseModel):
         default=None,
         alias="lastMessagePreview",
     )
-    last_message_at: datetime | None = Field(default=None, alias="lastMessageAt")
+    last_message_at: datetime | None = Field(
+        default=None,
+        alias="lastMessageAt",
+    )
     message_count: int = Field(alias="messageCount")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
@@ -149,6 +158,20 @@ class ConversationDetailResp(ConversationSummaryResp):
     opening_message: str | None = Field(default=None, alias="openingMessage")
     agent_snapshot: dict[str, Any] = Field(alias="agentSnapshot")
     metadata: dict[str, Any] | None = None
+
+
+class ConversationKnowledgeSourceResp(BaseModel):
+    """Knowledge source used by one assistant message."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    chunk_id: int = Field(alias="chunkId")
+    document_id: int = Field(alias="documentId")
+    document_name: str = Field(alias="documentName")
+    score: float
+    page_number: int | None = Field(default=None, alias="pageNumber")
+    section_title: str | None = Field(default=None, alias="sectionTitle")
+    snippet: str | None = None
 
 
 class ConversationMessageResp(BaseModel):
@@ -171,5 +194,9 @@ class ConversationMessageResp(BaseModel):
         alias="modelSnapshot",
     )
     error: dict[str, Any] | None = None
+    knowledge_sources: list[ConversationKnowledgeSourceResp] = Field(
+        default_factory=list,
+        alias="knowledgeSources",
+    )
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")

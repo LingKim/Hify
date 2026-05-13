@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hify 知识库工作台原型</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f2ea;
+        --panel: #fffdf8;
+        --panel-strong: #fdf8ec;
+        --ink: #1f2a28;
+        --muted: #6f7771;
+        --soft: #91988f;
+        --line: #dfd8c9;
+        --brand: #235c4a;
+        --brand-2: #d8683a;
+        --brand-soft: #e6f0ea;
+        --warning: #a96117;
+        --warning-soft: #fff0d4;
+        --danger: #9e3f36;
+        --danger-soft: #ffe8e4;
+        --success: #2f7353;
+        --success-soft: #e2f1e8;
+        --shadow: 0 18px 45px rgba(48, 42, 31, 0.11);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(35, 92, 74, 0.08), transparent 36%),
+          linear-gradient(315deg, rgba(216, 104, 58, 0.08), transparent 30%),
+          var(--bg);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "PingFang SC",
+          "Hiragino Sans GB",
+          "Microsoft YaHei",
+          sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .global-nav {
+        padding: 24px 18px;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 253, 248, 0.72);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 30px;
+        font-weight: 760;
+        letter-spacing: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--brand);
+        color: var(--panel);
+        font-weight: 800;
+      }
+
+      .nav-group {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: 8px;
+        color: var(--muted);
+      }
+
+      .nav-item.active {
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .main {
+        padding: 28px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 22px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        white-space: nowrap;
+      }
+
+      .btn {
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 14px;
+        background: var(--panel);
+        color: var(--ink);
+        cursor: default;
+      }
+
+      .btn.primary {
+        border-color: var(--brand);
+        background: var(--brand);
+        color: var(--panel);
+        box-shadow: 0 10px 20px rgba(35, 92, 74, 0.18);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 18px;
+        min-height: calc(100vh - 130px);
+      }
+
+      .library-rail,
+      .detail {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 253, 248, 0.86);
+        box-shadow: var(--shadow);
+      }
+
+      .library-rail {
+        padding: 16px;
+      }
+
+      .search {
+        width: 100%;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 12px;
+        background: var(--panel);
+        color: var(--ink);
+        outline: none;
+      }
+
+      .rail-meta {
+        display: flex;
+        justify-content: space-between;
+        margin: 16px 0 10px;
+        color: var(--soft);
+        font-size: 13px;
+      }
+
+      .kb-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .kb-card {
+        position: relative;
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .kb-card.active {
+        border-color: color-mix(in srgb, var(--brand) 38%, var(--line));
+        background: linear-gradient(135deg, var(--brand-soft), var(--panel) 68%);
+      }
+
+      .kb-card.active::before {
+        position: absolute;
+        top: 14px;
+        bottom: 14px;
+        left: -1px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--brand);
+        content: "";
+      }
+
+      .kb-name {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 760;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 24px;
+        border-radius: 999px;
+        padding: 0 9px;
+        background: var(--success-soft);
+        color: var(--success);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.draft {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .kb-desc {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .kb-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .kb-stats strong {
+        display: block;
+        color: var(--ink);
+        font-size: 16px;
+        line-height: 1.2;
+      }
+
+      .detail {
+        overflow: hidden;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 286px;
+        gap: 22px;
+        padding: 24px;
+        border-bottom: 1px solid var(--line);
+        background:
+          linear-gradient(90deg, rgba(35, 92, 74, 0.09), transparent 55%),
+          var(--panel);
+      }
+
+      .breadcrumb {
+        margin-bottom: 12px;
+        color: var(--soft);
+        font-size: 13px;
+      }
+
+      .hero h2 {
+        margin: 0 0 10px;
+        font-size: 26px;
+        letter-spacing: 0;
+      }
+
+      .hero-copy {
+        max-width: 720px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .health-card {
+        display: grid;
+        align-content: space-between;
+        min-height: 178px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        background: var(--panel-strong);
+      }
+
+      .health-ring {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .ring {
+        display: grid;
+        width: 72px;
+        height: 72px;
+        place-items: center;
+        border-radius: 50%;
+        background:
+          conic-gradient(var(--brand) 0 78%, #e9dfcf 78% 100%);
+        color: var(--brand);
+        font-weight: 800;
+      }
+
+      .ring span {
+        display: grid;
+        width: 54px;
+        height: 54px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--panel-strong);
+      }
+
+      .health-copy {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .body-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+        gap: 18px;
+        padding: 18px;
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 16px 12px;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .section-note {
+        color: var(--soft);
+        font-size: 13px;
+      }
+
+      .doc-list {
+        display: grid;
+        gap: 1px;
+        padding: 0 12px 12px;
+      }
+
+      .doc-row {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) 112px 86px 34px;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 6px;
+        border-top: 1px solid color-mix(in srgb, var(--line) 72%, var(--panel));
+      }
+
+      .file-icon {
+        display: grid;
+        width: 34px;
+        height: 40px;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .doc-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 700;
+      }
+
+      .doc-sub {
+        margin-top: 4px;
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .status {
+        justify-self: start;
+        border-radius: 999px;
+        padding: 5px 9px;
+        background: var(--success-soft);
+        color: var(--success);
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .status.processing {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .status.failed {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .progress {
+        height: 7px;
+        border-radius: 999px;
+        background: #eadfce;
+        overflow: hidden;
+      }
+
+      .progress span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--brand-2);
+      }
+
+      .icon-btn {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .drop-zone {
+        margin: 0 16px 16px;
+        border: 1px dashed color-mix(in srgb, var(--brand) 46%, var(--line));
+        border-radius: 8px;
+        padding: 18px;
+        background: var(--brand-soft);
+      }
+
+      .drop-zone strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .drop-zone p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .side-stack {
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .test-box {
+        padding: 0 16px 16px;
+      }
+
+      .question {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .question input {
+        min-width: 0;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 11px;
+        outline: none;
+      }
+
+      .hit-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hit {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--panel-strong);
+      }
+
+      .hit-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .score {
+        color: var(--brand);
+        font-weight: 800;
+      }
+
+      .hit p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .agent-list {
+        display: grid;
+        gap: 10px;
+        padding: 0 16px 16px;
+      }
+
+      .agent {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--panel-strong);
+      }
+
+      .agent strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .agent span {
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      .toggle {
+        width: 38px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--brand);
+        padding: 3px;
+      }
+
+      .toggle::after {
+        display: block;
+        width: 16px;
+        height: 16px;
+        margin-left: auto;
+        border-radius: 50%;
+        background: var(--panel);
+        content: "";
+      }
+
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .global-nav {
+          display: none;
+        }
+
+        .workspace,
+        .body-grid,
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .main {
+          padding: 18px;
+        }
+
+        .topbar {
+          display: grid;
+        }
+
+        .actions,
+        .quick-actions {
+          width: 100%;
+        }
+
+        .actions .btn,
+        .quick-actions .btn {
+          flex: 1;
+        }
+
+        .doc-row {
+          grid-template-columns: 38px minmax(0, 1fr) 34px;
+        }
+
+        .doc-row .status,
+        .doc-row .progress {
+          grid-column: 2 / 3;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="global-nav">
+        <div class="brand">
+          <div class="brand-mark">H</div>
+          <div>Hify 控制台</div>
+        </div>
+        <nav class="nav-group">
+          <div class="nav-item">⌂ 首页</div>
+          <div class="nav-item">◌ Agent 配置</div>
+          <div class="nav-item active">▤ 知识库</div>
+          <div class="nav-item">☷ 会话日志</div>
+          <div class="nav-item">⚙ 模型供应商</div>
+          <div class="nav-item">◇ 用户管理</div>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>知识库</h1>
+            <p class="subtitle">
+              上传团队文档，Hify 会自动抽取文本、切片、向量化，并在 Agent
+              会话时按问题检索相关上下文。
+            </p>
+          </div>
+          <div class="actions">
+            <button class="btn">批量上传</button>
+            <button class="btn primary">新建知识库</button>
+          </div>
+        </header>
+
+        <section class="workspace">
+          <aside class="library-rail">
+            <input class="search" value="搜索知识库、文档、标签" />
+            <div class="rail-meta">
+              <span>知识空间</span>
+              <span>3 个</span>
+            </div>
+
+            <div class="kb-list">
+              <article class="kb-card active">
+                <div class="kb-name">
+                  <span>产品资料库</span>
+                  <span class="pill">已启用</span>
+                </div>
+                <p class="kb-desc">
+                  面向销售、客服和内部研发的产品说明、版本记录与 FAQ。
+                </p>
+                <div class="kb-stats">
+                  <span><strong>24</strong>文档</span>
+                  <span><strong>1286</strong>切片</span>
+                  <span><strong>5m</strong>更新</span>
+                </div>
+              </article>
+
+              <article class="kb-card">
+                <div class="kb-name">
+                  <span>客服话术库</span>
+                  <span class="pill">已启用</span>
+                </div>
+                <p class="kb-desc">
+                  常见售前售后问题、升级路径、退款与交付说明。
+                </p>
+                <div class="kb-stats">
+                  <span><strong>8</strong>文档</span>
+                  <span><strong>412</strong>切片</span>
+                  <span><strong>1d</strong>更新</span>
+                </div>
+              </article>
+
+              <article class="kb-card">
+                <div class="kb-name">
+                  <span>内部制度库</span>
+                  <span class="pill draft">草稿</span>
+                </div>
+                <p class="kb-desc">
+                  人事、财务、审批、采购等内部流程文档，尚未接入 Agent。
+                </p>
+                <div class="kb-stats">
+                  <span><strong>12</strong>文档</span>
+                  <span><strong>0</strong>Agent</span>
+                  <span><strong>3d</strong>更新</span>
+                </div>
+              </article>
+            </div>
+          </aside>
+
+          <section class="detail">
+            <div class="hero">
+              <div>
+                <div class="breadcrumb">知识库 / 产品资料库</div>
+                <h2>产品资料库</h2>
+                <p class="hero-copy">
+                  当前知识库已接入「售前助手」和「客服助手」。最近一次同步处理了
+                  3 个文件，其中 1 个文档因格式问题失败。
+                </p>
+                <div class="quick-actions">
+                  <button class="btn primary">上传文档</button>
+                  <button class="btn">检索测试</button>
+                  <button class="btn">绑定 Agent</button>
+                  <button class="btn">知识库设置</button>
+                </div>
+              </div>
+
+              <aside class="health-card">
+                <div class="health-ring">
+                  <div class="ring"><span>78%</span></div>
+                  <div>
+                    <strong>检索健康度</strong>
+                    <div class="health-copy">基于最近 7 天测试命中与失败率估算。</div>
+                  </div>
+                </div>
+                <div class="health-copy">
+                  建议补充「供应商配置」相关文档，最近 4 次测试都命中旧版本说明。
+                </div>
+              </aside>
+            </div>
+
+            <div class="body-grid">
+              <section class="section">
+                <div class="section-head">
+                  <div>
+                    <h3 class="section-title">文档流</h3>
+                    <div class="section-note">上传后自动解析、切片和向量化</div>
+                  </div>
+                  <button class="btn">筛选状态</button>
+                </div>
+
+                <div class="drop-zone">
+                  <strong>拖拽文件到这里，或点击上传</strong>
+                  <p>支持 PDF、DOCX、TXT、Markdown。单文件建议不超过 20 MB。</p>
+                </div>
+
+                <div class="doc-list">
+                  <div class="doc-row">
+                    <div class="file-icon">PDF</div>
+                    <div>
+                      <div class="doc-title">Hify 产品使用手册.pdf</div>
+                      <div class="doc-sub">342 个切片 · 2026-05-13 14:20</div>
+                    </div>
+                    <span class="status">已完成</span>
+                    <div class="progress"><span style="width: 100%"></span></div>
+                    <button class="icon-btn">⋯</button>
+                  </div>
+
+                  <div class="doc-row">
+                    <div class="file-icon">MD</div>
+                    <div>
+                      <div class="doc-title">release-notes-2026-05.md</div>
+                      <div class="doc-sub">正在生成 embedding · 预计 20 秒</div>
+                    </div>
+                    <span class="status processing">处理中</span>
+                    <div class="progress"><span style="width: 68%"></span></div>
+                    <button class="icon-btn">⋯</button>
+                  </div>
+
+                  <div class="doc-row">
+                    <div class="file-icon">DOC</div>
+                    <div>
+                      <div class="doc-title">销售常见问题.docx</div>
+                      <div class="doc-sub">121 个切片 · 2026-05-12 18:02</div>
+                    </div>
+                    <span class="status">已完成</span>
+                    <div class="progress"><span style="width: 100%"></span></div>
+                    <button class="icon-btn">⋯</button>
+                  </div>
+
+                  <div class="doc-row">
+                    <div class="file-icon">PDF</div>
+                    <div>
+                      <div class="doc-title">旧版部署说明扫描件.pdf</div>
+                      <div class="doc-sub">无法抽取文本，建议上传可复制文本的版本</div>
+                    </div>
+                    <span class="status failed">失败</span>
+                    <div class="progress"><span style="width: 24%"></span></div>
+                    <button class="icon-btn">⋯</button>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="side-stack">
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <h3 class="section-title">检索测试</h3>
+                      <div class="section-note">先验证命中，再交给 Agent 使用</div>
+                    </div>
+                  </div>
+                  <div class="test-box">
+                    <div class="question">
+                      <input value="如何配置模型供应商？" />
+                      <button class="btn primary">测试</button>
+                    </div>
+                    <div class="hit-list">
+                      <article class="hit">
+                        <div class="hit-meta">
+                          <span>Hify 产品使用手册.pdf · 第 3 页</span>
+                          <span class="score">0.86</span>
+                        </div>
+                        <p>
+                          管理员进入模型供应商管理页，创建 Provider，填写鉴权信息后再维护模型列表。
+                        </p>
+                      </article>
+                      <article class="hit">
+                        <div class="hit-meta">
+                          <span>销售常见问题.docx · 第 8 段</span>
+                          <span class="score">0.78</span>
+                        </div>
+                        <p>
+                          如果客户已经有 OpenAI-compatible 服务，可以通过 base URL 接入。
+                        </p>
+                      </article>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <h3 class="section-title">已绑定 Agent</h3>
+                      <div class="section-note">会话时自动引入相关片段</div>
+                    </div>
+                  </div>
+                  <div class="agent-list">
+                    <div class="agent">
+                      <div>
+                        <strong>售前助手</strong>
+                        <span>Top K 5 · 阈值 0.65</span>
+                      </div>
+                      <div class="toggle"></div>
+                    </div>
+                    <div class="agent">
+                      <div>
+                        <strong>客服助手</strong>
+                        <span>Top K 8 · 阈值 0.7</span>
+                      </div>
+                      <div class="toggle"></div>
+                    </div>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

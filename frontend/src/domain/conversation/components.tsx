@@ -2,6 +2,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  FileSearchOutlined,
   RobotOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -160,6 +161,9 @@ export function MessageBubble({
             ""
           )}
         </div>
+        {!isUser && message.knowledgeSources.length > 0 ? (
+          <KnowledgeSourceStrip sources={message.knowledgeSources} />
+        ) : null}
         <div className="conversation-message-meta">
           <Space size={6}>
             {statusIcon}
@@ -171,6 +175,78 @@ export function MessageBubble({
         </div>
       </div>
     </div>
+  );
+}
+
+function KnowledgeSourceStrip({
+  sources,
+}: {
+  sources: ConversationMessageRecord["knowledgeSources"];
+}): JSX.Element {
+  const documentSources = groupKnowledgeSourcesByDocument(sources);
+
+  return (
+    <div className="conversation-knowledge-sources">
+      <div className="conversation-knowledge-source-title">
+        <FileSearchOutlined />
+        <span>已引用知识库</span>
+      </div>
+      <Space size={[6, 6]} wrap>
+        {documentSources.map((source) => (
+          <Tag key={source.documentId} color="blue">
+            {source.documentName}
+            {source.pageNumber != null ? ` / 第 ${source.pageNumber} 页` : ""}
+            {` · ${(source.maxScore * 100).toFixed(0)}%`}
+            {source.hitCount > 1 ? ` · ${source.hitCount} 个片段` : ""}
+          </Tag>
+        ))}
+      </Space>
+    </div>
+  );
+}
+
+function groupKnowledgeSourcesByDocument(
+  sources: ConversationMessageRecord["knowledgeSources"],
+): Array<{
+  documentId: number;
+  documentName: string;
+  pageNumber: number | null;
+  maxScore: number;
+  hitCount: number;
+}> {
+  const sourceMap = new Map<
+    number,
+    {
+      documentId: number;
+      documentName: string;
+      pageNumber: number | null;
+      maxScore: number;
+      hitCount: number;
+    }
+  >();
+
+  sources.forEach((source) => {
+    const current = sourceMap.get(source.documentId);
+    if (current === undefined) {
+      sourceMap.set(source.documentId, {
+        documentId: source.documentId,
+        documentName: source.documentName,
+        pageNumber: source.pageNumber,
+        maxScore: source.score,
+        hitCount: 1,
+      });
+      return;
+    }
+
+    current.maxScore = Math.max(current.maxScore, source.score);
+    current.hitCount += 1;
+    if (current.pageNumber == null) {
+      current.pageNumber = source.pageNumber;
+    }
+  });
+
+  return Array.from(sourceMap.values()).sort(
+    (first, second) => second.maxScore - first.maxScore,
   );
 }
 

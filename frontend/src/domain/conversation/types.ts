@@ -62,6 +62,16 @@ export interface ConversationMessageQuery {
   role?: ConversationMessageRole;
 }
 
+export interface ConversationKnowledgeSource {
+  chunkId: number;
+  documentId: number;
+  documentName: string;
+  score: number;
+  pageNumber: number | null;
+  sectionTitle: string | null;
+  snippet: string | null;
+}
+
 export interface ConversationMessageRecord {
   id: number | string;
   conversationId: number;
@@ -75,6 +85,7 @@ export interface ConversationMessageRecord {
   latencyMs: number | null;
   modelSnapshot: Record<string, unknown> | null;
   error: Record<string, unknown> | null;
+  knowledgeSources: ConversationKnowledgeSource[];
   createdAt: string;
   updatedAt: string;
   isLocal?: boolean;

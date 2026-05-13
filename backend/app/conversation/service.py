@@ -6,6 +6,7 @@ from fastapi import status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.model import Agent
 from app.conversation.errors import ConversationErrorCode
 from app.conversation.model import (
     ConversationMessage,
@@ -41,6 +42,7 @@ from app.conversation.schema import (
 from app.core.database import utc_now
 from app.core.exceptions import BizException
 from app.core.responses import PageResult
+from app.knowledge.service import KnowledgeService
 from app.llm.executor import LiteLLMExecutor
 from app.llm.provider import ProviderSecretCodec
 
@@ -364,6 +366,24 @@ class ConversationService:
             agent,
             payload.content,
         )
+        rag_payload = await self._inject_rag_context(
+            agent,
+            messages,
+            query=payload.content,
+            user_id=user_id,
+            conversation_id=conversation.id,
+            run_id=run.id,
+        )
+        if rag_payload is not None:
+            run.request_json = {
+                **(run.request_json or {}),
+                "rag": rag_payload,
+            }
+            assistant_message.metadata_json = {
+                **(assistant_message.metadata_json or {}),
+                "rag": rag_payload,
+            }
+            await self.db.commit()
         model_config = agent.model_config_json or {}
         return PreparedConversationRun(
             conversation=conversation,
@@ -378,6 +398,107 @@ class ConversationService:
                 or model_config.get("max_tokens")
             ),
         )
+
+    async def _inject_rag_context(
+        self,
+        agent: Agent,
+        messages: list[dict[str, str]],
+        *,
+        query: str,
+        user_id: int,
+        conversation_id: int,
+        run_id: int,
+    ) -> dict[str, object] | None:
+        """Retrieve and insert knowledge context for enabled bindings."""
+        enabled_bindings = [
+            binding
+            for binding in agent.knowledge_bindings
+            if binding.deleted_at is None and binding.is_enabled
+        ]
+        if not enabled_bindings:
+            return None
+
+        knowledge_base_ids = [
+            binding.knowledge_base_id for binding in enabled_bindings
+        ]
+        retrieval_configs = {
+            binding.knowledge_base_id: binding.retrieval_config_json or {}
+            for binding in enabled_bindings
+        }
+        try:
+            retrieval = await KnowledgeService(
+                self.db,
+            ).retrieve_for_conversation(
+                knowledge_base_ids=knowledge_base_ids,
+                query=query,
+                user_id=user_id,
+                conversation_id=conversation_id,
+                run_id=run_id,
+                retrieval_configs=retrieval_configs,
+            )
+        except BizException as exc:
+            return {
+                "status": "failed",
+                "code": int(exc.code),
+                "message": exc.message,
+                "knowledgeBaseIds": knowledge_base_ids,
+            }
+
+        if not retrieval.context_text:
+            return {
+                "status": "empty",
+                "hitCount": 0,
+                "knowledgeBaseIds": knowledge_base_ids,
+                "sources": [],
+            }
+
+        context_message = {
+            "role": "system",
+            "content": (
+                "以下是可参考的知识库片段。回答时优先依据这些资料；"
+                "如果资料不足，请明确说明。\n\n"
+                f"{retrieval.context_text}"
+            ),
+        }
+        insert_at = 1 if messages and messages[0]["role"] == "system" else 0
+        messages.insert(insert_at, context_message)
+        return {
+            "status": "hit",
+            "hitCount": len(retrieval.hits),
+            "knowledgeBaseIds": knowledge_base_ids,
+            "sources": self._build_knowledge_sources(retrieval.hits),
+        }
+
+    def _build_knowledge_sources(
+        self,
+        hits: object,
+    ) -> list[dict[str, object]]:
+        """Build UI-safe source metadata from retrieval hits."""
+        if not isinstance(hits, list):
+            return []
+
+        sources: list[dict[str, object]] = []
+        seen_chunk_ids: set[int] = set()
+        for hit in hits:
+            chunk_id = getattr(hit, "chunk_id", None)
+            if not isinstance(chunk_id, int) or chunk_id in seen_chunk_ids:
+                continue
+            seen_chunk_ids.add(chunk_id)
+            content = str(getattr(hit, "content", "") or "")
+            sources.append(
+                {
+                    "chunkId": chunk_id,
+                    "documentId": int(getattr(hit, "document_id", 0) or 0),
+                    "documentName": str(
+                        getattr(hit, "document_name", "") or "未知文档"
+                    ),
+                    "score": float(getattr(hit, "score", 0) or 0),
+                    "pageNumber": getattr(hit, "page_number", None),
+                    "sectionTitle": getattr(hit, "section_title", None),
+                    "snippet": content[:180],
+                }
+            )
+        return sources[:5]
 
     async def _get_conversation_or_raise(
         self,

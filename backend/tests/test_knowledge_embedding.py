@@ -55,9 +55,12 @@ def test_cosine_search_sql_orders_by_vector_distance() -> None:
     statement = cosine_search_sql("knowledge_chunks", "embedding")
     compiled = str(statement)
 
-    assert "embedding <=> CAST(:query_embedding AS vector)" in compiled
+    assert "embedding <=> CAST(:query_embedding AS public.vector)" in compiled
     assert "FROM knowledge_chunks" in compiled
-    assert "ORDER BY embedding <=> CAST(:query_embedding AS vector)" in compiled
+    assert (
+        "ORDER BY embedding <=> CAST(:query_embedding AS public.vector)"
+        in compiled
+    )
     assert "LIMIT :limit" in compiled
 
 
