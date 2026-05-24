@@ -10,6 +10,9 @@ function buildBreadcrumb(pathname: string): { title: string }[] {
   if (pathname === "/agents") {
     return [{ title: "运营后台" }, { title: "Agent 配置" }];
   }
+  if (pathname === "/tools") {
+    return [{ title: "运营后台" }, { title: "工具集成" }];
+  }
   if (pathname === "/users") {
     return [{ title: "运营后台" }, { title: "用户管理" }];
   }

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hify 项目介绍</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fdfae7;
+      --primary: #1e2bfa;
+      --ink: #111111;
+      --muted: #666a73;
+      --soft: rgba(30, 43, 250, 0.08);
+      --medium: rgba(30, 43, 250, 0.16);
+      --line: rgba(30, 43, 250, 0.22);
+      --title-size: clamp(2.3rem, 5.2vw, 5rem);
+      --h2-size: clamp(1.45rem, 3vw, 2.65rem);
+      --h3-size: clamp(0.95rem, 1.45vw, 1.25rem);
+      --body-size: clamp(0.78rem, 1.05vw, 1rem);
+      --small-size: clamp(0.64rem, 0.82vw, 0.78rem);
+      --slide-padding: clamp(1.2rem, 4vw, 4.2rem);
+      --gap: clamp(0.7rem, 1.5vw, 1.4rem);
+      --radius: clamp(0.65rem, 1vw, 0.9rem);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans SC", sans-serif;
+    }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: var(--slide-padding);
+      opacity: 0;
+      transform: translateX(clamp(1rem, 3vw, 2.5rem));
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .slide.prev { transform: translateX(calc(-1 * clamp(1rem, 3vw, 2.5rem))); }
+
+    .slide-content {
+      flex: 1;
+      min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    h1,
+    h2,
+    h3,
+    .mono {
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: var(--title-size);
+      line-height: 0.98;
+      letter-spacing: 0;
+      max-width: min(72vw, 980px);
+    }
+
+    h2 {
+      font-size: var(--h2-size);
+      line-height: 1.14;
+      letter-spacing: 0;
+      margin-bottom: clamp(1rem, 2.4vh, 1.7rem);
+      max-width: min(82vw, 1180px);
+    }
+
+    h3 {
+      font-size: var(--h3-size);
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    p,
+    li {
+      font-size: var(--body-size);
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .eyebrow {
+      color: var(--primary);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: var(--small-size);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .slide-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--gap);
+      flex-shrink: 0;
+      margin-bottom: clamp(0.8rem, 2vh, 1.4rem);
+    }
+
+    .tag {
+      color: var(--primary);
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: clamp(0.22rem, 0.6vw, 0.38rem) clamp(0.55rem, 1.1vw, 0.9rem);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: var(--small-size);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .accent-line {
+      width: clamp(3rem, 6vw, 4.8rem);
+      height: clamp(0.18rem, 0.45vw, 0.32rem);
+      background: var(--primary);
+      border-radius: 999px;
+      margin-bottom: clamp(1rem, 2.3vh, 1.6rem);
+      flex-shrink: 0;
+    }
+
+    .cover {
+      justify-content: center;
+      padding-left: clamp(2rem, 8vw, 7.5rem);
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 34vw;
+      background: var(--soft);
+      clip-path: polygon(32% 0, 100% 0, 100% 100%, 0 100%);
+      z-index: -1;
+    }
+
+    .cover p {
+      max-width: min(52vw, 720px);
+      margin-top: clamp(1rem, 2.5vh, 1.8rem);
+      font-size: clamp(0.95rem, 1.35vw, 1.22rem);
+    }
+
+    .meta {
+      margin-top: clamp(1.4rem, 4vh, 2.8rem);
+      color: #8b8d93;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: var(--small-size);
+      letter-spacing: 0.06em;
+    }
+
+    .grid-2,
+    .grid-3 {
+      display: grid;
+      gap: var(--gap);
+      min-height: 0;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: var(--radius);
+      padding: clamp(0.85rem, 1.7vw, 1.45rem);
+      min-height: 0;
+    }
+
+    .card .num {
+      display: block;
+      color: var(--primary);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1.7rem, 3.4vw, 3rem);
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: clamp(0.55rem, 1vh, 0.8rem);
+    }
+
+    .card h3 { margin-bottom: clamp(0.38rem, 0.85vh, 0.65rem); }
+
+    .agenda {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      flex: 1;
+    }
+
+    .agenda .card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: clamp(0.75rem, 1.2vw, 1.1rem);
+      align-items: start;
+      padding: clamp(0.75rem, 1.4vw, 1.15rem);
+    }
+
+    .agenda .num {
+      font-size: clamp(1.35rem, 2.3vw, 2rem);
+      margin: 0;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.06fr 0.94fr;
+      gap: clamp(1rem, 3vw, 3.3rem);
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    .ordered {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      counter-reset: item;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.55rem, 1.3vh, 1rem);
+    }
+
+    .ordered li {
+      counter-increment: item;
+      position: relative;
+      padding-left: clamp(2rem, 3vw, 2.7rem);
+      color: var(--ink);
+    }
+
+    .ordered li::before {
+      content: counter(item, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--primary);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-weight: 700;
+      font-size: var(--small-size);
+      line-height: 1.9;
+    }
+
+    .quote-box {
+      border-left: clamp(0.22rem, 0.45vw, 0.35rem) solid var(--primary);
+      background: var(--soft);
+      border-radius: var(--radius);
+      padding: clamp(1rem, 2vw, 1.5rem);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1rem, 1.55vw, 1.42rem);
+      line-height: 1.42;
+      color: var(--ink);
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(0.55rem, 1vw, 0.9rem);
+      margin-top: var(--gap);
+    }
+
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(0.65rem, 1.2vw, 0.95rem);
+      background: rgba(30, 43, 250, 0.04);
+    }
+
+    .mini strong {
+      display: block;
+      color: var(--primary);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      line-height: 1;
+      margin-bottom: clamp(0.35rem, 0.7vh, 0.5rem);
+    }
+
+    .mini span {
+      color: var(--muted);
+      font-size: var(--small-size);
+      line-height: 1.45;
+    }
+
+    .system {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr 1fr;
+      gap: var(--gap);
+      min-height: 0;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(0.35rem, 0.7vw, 0.55rem);
+      margin-top: clamp(0.7rem, 1.5vh, 1.1rem);
+    }
+
+    .pill {
+      color: var(--primary);
+      border: 1px solid var(--line);
+      background: rgba(30, 43, 250, 0.05);
+      border-radius: 999px;
+      padding: clamp(0.18rem, 0.45vw, 0.28rem) clamp(0.45rem, 0.85vw, 0.65rem);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: var(--small-size);
+      font-weight: 700;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(0.7rem, 1.5vw, 1.2rem);
+      align-items: center;
+    }
+
+    .step {
+      text-align: center;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: clamp(1.45rem, 3vw, 2rem);
+      right: calc(-1 * clamp(0.7rem, 1.5vw, 1.2rem));
+      width: clamp(0.7rem, 1.5vw, 1.2rem);
+      height: 1px;
+      background: var(--line);
+    }
+
+    .circle {
+      width: clamp(3rem, 5vw, 4rem);
+      height: clamp(3rem, 5vw, 4rem);
+      margin: 0 auto clamp(0.75rem, 1.6vh, 1.1rem);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--bg);
+      background: var(--primary);
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1.1rem, 1.8vw, 1.45rem);
+      font-weight: 700;
+    }
+
+    .center-quote {
+      align-items: center;
+      text-align: center;
+    }
+
+    .center-quote blockquote {
+      max-width: min(78vw, 1060px);
+      margin: 0;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: clamp(1.55rem, 3.05vw, 2.7rem);
+      line-height: 1.35;
+      color: var(--ink);
+    }
+
+    .center-quote .mark {
+      color: var(--primary);
+      opacity: 0.18;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(5rem, 13vw, 9rem);
+      line-height: 0.65;
+      font-weight: 700;
+    }
+
+    .closing {
+      align-items: center;
+      text-align: center;
+    }
+
+    .closing::before,
+    .closing::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .closing::before {
+      width: min(54vw, 520px);
+      aspect-ratio: 1;
+      opacity: 0.45;
+    }
+
+    .closing::after {
+      width: min(38vw, 360px);
+      aspect-ratio: 1;
+      opacity: 0.3;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: clamp(0.8rem, 2.5vh, 1.6rem);
+      right: clamp(1rem, 3vw, 2.4rem);
+      z-index: 100;
+      display: flex;
+      gap: clamp(0.45rem, 1vw, 0.8rem);
+    }
+
+    .nav button {
+      width: clamp(2.35rem, 4vw, 3rem);
+      height: clamp(2.35rem, 4vw, 3rem);
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--primary);
+      cursor: pointer;
+      font-size: clamp(1rem, 1.4vw, 1.15rem);
+    }
+
+    .counter,
+    .hint {
+      position: fixed;
+      bottom: clamp(0.95rem, 2.8vh, 1.8rem);
+      z-index: 100;
+      color: #8b8d93;
+      font-family: "Space Grotesk", "Noto Sans SC", sans-serif;
+      font-size: var(--small-size);
+    }
+
+    .counter { left: clamp(1rem, 3vw, 2.4rem); }
+    .hint { left: 50%; transform: translateX(-50%); }
+
+    .progress {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      height: clamp(0.16rem, 0.35vw, 0.22rem);
+      background: var(--primary);
+      z-index: 120;
+      transition: width 0.35s ease;
+    }
+
+    @media (max-height: 700px) {
+      :root {
+        --slide-padding: clamp(0.8rem, 3vw, 2rem);
+        --title-size: clamp(1.8rem, 4.5vw, 3.4rem);
+        --h2-size: clamp(1.15rem, 2.7vw, 2rem);
+        --body-size: clamp(0.7rem, 0.95vw, 0.9rem);
+        --gap: clamp(0.45rem, 1vw, 0.8rem);
+      }
+      .card { padding: clamp(0.65rem, 1vw, 0.9rem); }
+      .hint { display: none; }
+    }
+
+    @media (max-height: 600px) {
+      :root {
+        --slide-padding: clamp(0.55rem, 2.4vw, 1.5rem);
+        --title-size: clamp(1.45rem, 4vw, 2.5rem);
+        --h2-size: clamp(1rem, 2.4vw, 1.55rem);
+        --body-size: clamp(0.62rem, 0.9vw, 0.78rem);
+      }
+      .nav, .counter { opacity: 0.4; }
+    }
+
+    @media (max-height: 500px), (max-width: 760px) {
+      .grid-2,
+      .grid-3,
+      .agenda,
+      .split,
+      .system,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+      .agenda { grid-template-rows: none; }
+      .slide-content { justify-content: flex-start; }
+      .step:not(:last-child)::after { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide cover active">
+      <div class="accent-line"></div>
+      <h1>Hify<br>AI Agent 开发平台</h1>
+      <p>一个面向团队内部使用的轻量级 Agent 平台：创建 Agent，配置模型、工具与知识库，然后进入对话使用。</p>
+      <div class="meta">PROJECT INTRODUCTION · MAY 2026</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">目录</span>
+        <span class="tag">Overview</span>
+      </div>
+      <div class="slide-content">
+        <div class="accent-line"></div>
+        <div class="grid-2 agenda">
+          <div class="card"><span class="num">01</span><div><h3>项目定位</h3><p>为什么做 Hify，它要解决团队内部 AI 应用落地的什么问题。</p></div></div>
+          <div class="card"><span class="num">02</span><div><h3>核心链路</h3><p>从模型配置、Agent 配置到真实对话运行的主流程。</p></div></div>
+          <div class="card"><span class="num">03</span><div><h3>MVP 能力</h3><p>模型管理、Agent、会话、知识库、工具、团队管理与部署。</p></div></div>
+          <div class="card"><span class="num">04</span><div><h3>技术架构</h3><p>FastAPI、React、PostgreSQL、Redis、PGVector 与 LiteLLM 的协作。</p></div></div>
+          <div class="card"><span class="num">05</span><div><h3>当前进展</h3><p>已完成的基础设施与业务模块，以及仍在推进的关键闭环。</p></div></div>
+          <div class="card"><span class="num">06</span><div><h3>路线图</h3><p>先打通单 Agent 主链路，再扩展 RAG、工具、发布和工作流。</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">项目定位</span>
+        <span class="tag">What it is</span>
+      </div>
+      <div class="slide-content">
+        <h2>Hify 是团队自己的轻量级 AI Agent 平台</h2>
+        <div class="grid-3">
+          <div class="card"><span class="num">20-50</span><h3>面向内部团队规模</h3><p>定位不是公有云平台，而是本地部署、低运维负担、能快速满足团队内部 AI 应用需求。</p></div>
+          <div class="card"><span class="num">3</span><h3>核心使用链路</h3><p>创建 Agent，配置模型、工具和知识库，然后在对话中稳定使用。</p></div>
+          <div class="card"><span class="num">MVP</span><h3>做必要能力，不做平台幻觉</h3><p>一期主动砍掉 Marketplace、SSO、多租户、可视化 Workflow 等高复杂度能力。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">MVP 能力</span>
+        <span class="tag">Scope</span>
+      </div>
+      <div class="slide-content">
+        <h2>一期能力围绕 Agent 应用从配置到运行展开</h2>
+        <div class="grid-3">
+          <div class="card"><span class="num">01</span><h3>模型管理</h3><p>多模型 Provider 配置、密钥安全存储、模型参数与能力标签。</p></div>
+          <div class="card"><span class="num">02</span><h3>Agent 配置</h3><p>基础信息、默认模型、系统提示词、开场白、运行参数与绑定关系。</p></div>
+          <div class="card"><span class="num">03</span><h3>会话运行</h3><p>选择 Agent、创建会话、SSE 流式回复、保存消息与运行记录。</p></div>
+          <div class="card"><span class="num">04</span><h3>知识库 / RAG</h3><p>文档上传、抽取、切片、Embedding、PGVector 索引与检索测试。</p></div>
+          <div class="card"><span class="num">05</span><h3>工具与集成</h3><p>自定义工具、OpenAPI 导入、Web UI 与内部系统 API 调用入口。</p></div>
+          <div class="card"><span class="num">06</span><h3>团队与部署</h3><p>账密登录、基础角色、对话日志、Docker Compose 一键本地交付。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">核心链路</span>
+        <span class="tag">Product Flow</span>
+      </div>
+      <div class="slide-content">
+        <h2>产品主线不是“功能堆叠”，而是跑通单 Agent 闭环</h2>
+        <div class="split">
+          <ul class="ordered">
+            <li>管理员维护模型 Provider，确保平台知道“可以调用哪些模型”。</li>
+            <li>用户创建 Agent，绑定默认模型，并配置提示词、欢迎语、运行参数。</li>
+            <li>会话模块加载 Agent 配置，校验模型，拼装上下文并调用 LiteLLM。</li>
+            <li>知识库和工具作为后续增强能力，挂到 Agent 配置与会话运行层。</li>
+            <li>对话日志、运行记录和错误状态落库，支撑可观测性与复盘。</li>
+          </ul>
+          <div>
+            <div class="quote-box">“先让一个 Agent 稳定回答，再扩展复杂编排。”</div>
+            <div class="mini-row">
+              <div class="mini"><strong>P0</strong><span>模型管理稳定可用</span></div>
+              <div class="mini"><strong>P1</strong><span>Agent 成为配置主体</span></div>
+              <div class="mini"><strong>P2</strong><span>SSE 对话运行闭环</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">技术架构</span>
+        <span class="tag">Stack</span>
+      </div>
+      <div class="slide-content">
+        <h2>架构选择围绕“简单、可扩展、方便本地交付”</h2>
+        <div class="system">
+          <div class="card">
+            <h3>Frontend</h3>
+            <p>React 18 + TypeScript + Vite，采用混合式 DDD：app / shared / domain / pages。</p>
+            <div class="pills"><span class="pill">Ant Design</span><span class="pill">React Query</span><span class="pill">Domain 五件套</span></div>
+          </div>
+          <div class="card">
+            <h3>Backend</h3>
+            <p>FastAPI 模块化单体，按 auth、provider、agent、conversation、knowledge、tool 等领域拆分。</p>
+            <div class="pills"><span class="pill">SQLAlchemy</span><span class="pill">Alembic</span><span class="pill">统一响应</span><span class="pill">JWT</span></div>
+          </div>
+          <div class="card">
+            <h3>AI &amp; Data</h3>
+            <p>LiteLLM 统一模型调用，PostgreSQL + PGVector 承载业务数据与向量检索，Redis 做缓存。</p>
+            <div class="pills"><span class="pill">LiteLLM</span><span class="pill">PGVector</span><span class="pill">Redis</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide center-quote">
+      <div class="slide-content center-quote">
+        <div class="mark">“</div>
+        <blockquote>Hify 的关键不是复制 Dify 的全部功能，而是把内部团队最需要的 Agent 闭环做稳。</blockquote>
+        <p style="margin-top: clamp(1rem, 2.6vh, 1.8rem);">需求本质 · 少即是快，闭环优先</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">开发路线</span>
+        <span class="tag">Roadmap</span>
+      </div>
+      <div class="slide-content">
+        <h2>按依赖推进，而不是按功能名平均铺开</h2>
+        <div class="timeline">
+          <div class="step"><div class="circle">1</div><h3>模型与 Agent</h3><p>Provider 管理稳定后，Agent 成为可保存、可预览、可绑定的配置主体。</p></div>
+          <div class="step"><div class="circle">2</div><h3>对话运行</h3><p>打通 Web 对话、SSE 流式输出、消息历史、运行记录与错误落库。</p></div>
+          <div class="step"><div class="circle">3</div><h3>知识与工具</h3><p>接入 RAG 检索和外部 API 工具，让 Agent 从回答走向行动。</p></div>
+          <div class="step"><div class="circle">4</div><h3>发布与部署</h3><p>补齐 API 集成、日志分析、团队权限、Workflow 和 Docker Compose 交付。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <span class="eyebrow">当前进展</span>
+        <span class="tag">Status</span>
+      </div>
+      <div class="slide-content">
+        <h2>项目已经具备基础骨架，正在向真实业务闭环推进</h2>
+        <div class="grid-2">
+          <div class="card"><h3>已完成：基础设施</h3><p>前后端分离骨架、一键启动脚本、统一请求层、主题系统、测试基础设施、FastAPI 模块化单体与 Alembic 迁移体系。</p></div>
+          <div class="card"><h3>已完成：模型管理</h3><p>Provider 聚合 CRUD、密钥加密、secretMask 返回、前端管理页与接口测试。</p></div>
+          <div class="card"><h3>已完成：Agent 配置</h3><p>Agent 聚合 CRUD、配置预览、工具和知识库绑定预留、前端单页管理与路由入口。</p></div>
+          <div class="card"><h3>推进中：运行与知识</h3><p>会话 CRUD、SSE 流式输出、LiteLLM 真实调用、文档切片、PGVector 检索与 RAG 注入。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide closing">
+      <div class="slide-content closing">
+        <div class="accent-line"></div>
+        <h1>下一步：打通主链路</h1>
+        <p style="max-width: min(62vw, 820px); margin-top: clamp(1rem, 2.5vh, 1.6rem);">模型管理 → Agent 配置 → 对话运行，是 Hify 从“工程骨架”变成“可用平台”的关键路径。</p>
+        <div class="meta">HIFY / AI AGENT PLATFORM · INTERNAL DEMO</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="counter"><span id="current">1</span> / <span id="total">10</span></div>
+  <div class="hint">Arrow keys / Space to navigate</div>
+  <div class="progress" id="progress"></div>
+  <nav class="nav" aria-label="Presentation navigation">
+    <button id="prev" type="button" aria-label="上一页">‹</button>
+    <button id="next" type="button" aria-label="下一页">›</button>
+  </nav>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const currentEl = document.getElementById("current");
+    const totalEl = document.getElementById("total");
+    const progressEl = document.getElementById("progress");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    let index = 0;
+
+    totalEl.textContent = String(slides.length);
+
+    function showSlide(nextIndex) {
+      index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === index);
+        slide.classList.toggle("prev", i < index);
+      });
+      currentEl.textContent = String(index + 1);
+      progressEl.style.width = `${((index + 1) / slides.length) * 100}%`;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    }
+
+    prevBtn.addEventListener("click", () => showSlide(index - 1));
+    nextBtn.addEventListener("click", () => showSlide(index + 1));
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowRight", " ", "PageDown"].includes(event.key)) {
+        event.preventDefault();
+        showSlide(index + 1);
+      }
+      if (["ArrowLeft", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        showSlide(index - 1);
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        showSlide(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        showSlide(slides.length - 1);
+      }
+    });
+
+    let touchStart = 0;
+    document.addEventListener("touchstart", (event) => {
+      touchStart = event.changedTouches[0].screenX;
+    }, { passive: true });
+    document.addEventListener("touchend", (event) => {
+      const diff = touchStart - event.changedTouches[0].screenX;
+      if (Math.abs(diff) > 50) showSlide(index + (diff > 0 ? 1 : -1));
+    }, { passive: true });
+
+    showSlide(0);
+  </script>
+</body>
+</html>

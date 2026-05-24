@@ -65,6 +65,96 @@ body {
   font-size: 12px;
 }
 
+.tool-page {
+  display: grid;
+  gap: 16px;
+}
+
+.tool-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.tool-cell .ant-typography-secondary {
+  max-width: 420px;
+  font-size: 12px;
+}
+
+.tool-parameters-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.tool-parameters-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tool-parameters-empty {
+  padding: 20px 0;
+}
+
+.tool-parameter-card.ant-card {
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--panel-bg) 92%, var(--page-bg));
+}
+
+.tool-parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tool-parameter-grid-wide {
+  grid-column: span 2;
+}
+
+.tool-inline-hint {
+  margin-top: 8px;
+}
+
+.tool-test-dialog {
+  display: grid;
+  gap: 16px;
+}
+
+.tool-test-result pre {
+  max-height: 220px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.tool-log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.tool-log-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--panel-bg) 92%, var(--page-bg));
+}
+
+.tool-log-row .ant-typography {
+  margin-bottom: 0;
+}
+
+.tool-openapi-row {
+  width: 100%;
+}
+
+.tool-openapi-row .ant-form-item {
+  flex: 1;
+}
+
 .knowledge-page {
   display: grid;
   gap: 20px;

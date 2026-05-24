@@ -3,6 +3,7 @@ import {
   AppstoreOutlined,
   BookOutlined,
   CommentOutlined,
+  ToolOutlined,
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -39,6 +40,11 @@ const navigationItems: ItemType[] = [
     label: "Agent 配置",
   },
   {
+    key: "/tools",
+    icon: <ToolOutlined />,
+    label: "工具集成",
+  },
+  {
     key: "/knowledge",
     icon: <BookOutlined />,
     label: "知识库",
@@ -73,6 +79,7 @@ const navigationItems: ItemType[] = [
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
   "/agents": "Agent 配置",
+  "/tools": "工具集成",
   "/knowledge": "知识库",
   "/chat": "对话使用",
   "/conversations": "会话日志",
