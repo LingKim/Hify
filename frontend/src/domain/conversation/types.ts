@@ -72,6 +72,26 @@ export interface ConversationKnowledgeSource {
   snippet: string | null;
 }
 
+export type ConversationToolCallStatus =
+  | "running"
+  | "success"
+  | "failed"
+  | "timeout";
+
+export interface ConversationToolCall {
+  toolCallId: string;
+  toolId: number;
+  toolName: string;
+  runtimeToolName: string;
+  status: ConversationToolCallStatus;
+  executionLogId: number | null;
+  argumentsPreview: Record<string, unknown>;
+  responsePreview: string | null;
+  latencyMs: number | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
 export interface ConversationMessageRecord {
   id: number | string;
   conversationId: number;
@@ -86,6 +106,7 @@ export interface ConversationMessageRecord {
   modelSnapshot: Record<string, unknown> | null;
   error: Record<string, unknown> | null;
   knowledgeSources: ConversationKnowledgeSource[];
+  toolCalls: ConversationToolCall[];
   createdAt: string;
   updatedAt: string;
   isLocal?: boolean;
@@ -112,6 +133,16 @@ export interface ConversationAgentRuntimePreview {
   openingMessage: string | null;
   enabledToolIds: number[];
   enabledKnowledgeBaseIds: number[];
+  tools: Array<{
+    toolId: number;
+    toolName: string;
+    runtimeToolName: string;
+    description: string | null;
+    status: string;
+    httpMethod: string;
+    parameterCount: number;
+  }>;
+  warnings: string[];
 }
 
 export interface StreamRunStartedEvent {
@@ -147,6 +178,51 @@ export interface StreamDeltaEvent {
   sequence: number;
 }
 
+export interface StreamToolStartedEvent {
+  runId: number;
+  conversationId: number;
+  messageId: number;
+  toolCallId: string;
+  toolId: number;
+  toolName: string;
+  runtimeToolName: string;
+  argumentsPreview: Record<string, unknown>;
+  startedAt: string;
+}
+
+export interface StreamToolCompletedEvent {
+  runId: number;
+  conversationId: number;
+  messageId: number;
+  toolCallId: string;
+  toolId: number;
+  toolName: string;
+  runtimeToolName: string;
+  status: "success";
+  executionLogId: number;
+  latencyMs: number;
+  responseStatusCode: number | null;
+  responsePreview: string | null;
+  completedAt: string;
+}
+
+export interface StreamToolFailedEvent {
+  runId: number;
+  conversationId: number;
+  messageId: number;
+  toolCallId: string;
+  toolId: number;
+  toolName: string;
+  runtimeToolName: string;
+  status: "failed" | "timeout";
+  executionLogId: number | null;
+  latencyMs: number | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  retryable: boolean;
+  completedAt: string;
+}
+
 export interface StreamMessageCompletedEvent {
   runId: number;
   message: Partial<ConversationMessageRecord> & {
@@ -180,6 +256,9 @@ export interface StreamErrorEvent {
 export interface StreamMessageCallbacks {
   onRunStarted?: (event: StreamRunStartedEvent) => void;
   onMessageCreated?: (event: StreamMessageCreatedEvent) => void;
+  onToolStarted?: (event: StreamToolStartedEvent) => void;
+  onToolCompleted?: (event: StreamToolCompletedEvent) => void;
+  onToolFailed?: (event: StreamToolFailedEvent) => void;
   onDelta?: (event: StreamDeltaEvent) => void;
   onMessageCompleted?: (event: StreamMessageCompletedEvent) => void;
   onRunCompleted?: (event: StreamRunCompletedEvent) => void;

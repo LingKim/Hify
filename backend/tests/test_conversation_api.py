@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.agent.model import Agent
+from app.agent.model import Agent, AgentToolBinding
 from app.auth.model import User
 from app.auth.password import hash_password
 from app.conversation.model import ConversationMessage, ConversationRun
@@ -26,6 +26,7 @@ from app.llm.executor import LiteLLMExecutor, StreamChunk
 from app.llm.model import ProviderAuthSecret, ProviderInstance, ProviderModel
 from app.llm.provider import ProviderSecretCodec, ProviderSecretPayload
 from app.main import app
+from app.tool.model import Tool, ToolAuthSecret, ToolExecutionLog, ToolParameter
 
 
 def _database_url() -> str:
@@ -139,6 +140,7 @@ async def conversation_api_harness(
             is_default=True,
             supports_chat=True,
             supports_stream=True,
+            supports_tools=True,
             sort_order=0,
         )
         session.add(model)
@@ -336,3 +338,198 @@ async def test_stream_message_persists_messages_and_run(
     assert run is not None
     assert run.status == "completed"
     assert run.assistant_message_id == assistant.id
+
+
+@pytest.mark.asyncio
+async def test_stream_message_executes_bound_tool_and_exposes_tool_calls(
+    conversation_api_harness: ConversationApiHarness,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_send = httpx.AsyncClient.send
+    codec = ProviderSecretCodec()
+    async with conversation_api_harness.session_factory() as session:
+        tool = Tool(
+            owner_user_id=conversation_api_harness.user_id,
+            name="查询天气",
+            description="按城市查询天气",
+            status="enabled",
+            tool_type="http",
+            source_type="manual",
+            http_method="GET",
+            url="https://api.example.com/weather",
+            timeout_seconds=15,
+            headers_template_json={"Accept": "application/json"},
+            query_template_json={"city": "{{city}}"},
+            content_type="application/json",
+        )
+        session.add(tool)
+        await session.flush()
+        session.add(
+            ToolAuthSecret(
+                tool_id=tool.id,
+                auth_type="api_key_header",
+                secret_ciphertext=codec.encrypt(
+                    ProviderSecretPayload(secret_value="sk-weather-tool")
+                ),
+                secret_masked="sk-w...tool",
+                secret_fingerprint="weather",
+                encryption_key_version="v1",
+                metadata_json={"headerName": "X-API-Key"},
+            )
+        )
+        session.add(
+            ToolParameter(
+                tool_id=tool.id,
+                name="city",
+                label="城市",
+                description="要查询天气的城市名称",
+                param_location="query",
+                schema_type="string",
+                is_required=True,
+                schema_json={"type": "string"},
+                sort_order=0,
+            )
+        )
+        session.add(
+            AgentToolBinding(
+                agent_id=conversation_api_harness.agent_id,
+                tool_id=tool.id,
+                binding_name="weather_lookup",
+                is_enabled=True,
+                sort_order=0,
+            )
+        )
+        await session.commit()
+        tool_id = tool.id
+
+    async def fake_send(self, request, **kwargs):  # type: ignore[no-untyped-def]
+        if request.url.host == "testserver":
+            return await original_send(self, request, **kwargs)
+        del kwargs
+        assert request.url == httpx.URL(
+            "https://api.example.com/weather?city=%E6%9D%AD%E5%B7%9E"
+        )
+        assert request.headers["X-API-Key"] == "sk-weather-tool"
+        return httpx.Response(
+            200,
+            json={"city": "杭州", "weather": "晴", "temperature": 26},
+            request=request,
+        )
+
+    async def fake_invoke_with_tools(
+        self,  # noqa: ARG001
+        runtime_config,  # type: ignore[no-untyped-def]
+        *,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> dict[str, Any]:
+        del runtime_config, messages, temperature, max_tokens
+        assert tools[0]["function"]["name"] == "weather_lookup"
+        return {
+            "assistantMessage": {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_weather_1",
+                        "type": "function",
+                        "function": {
+                            "name": "weather_lookup",
+                            "arguments": '{"city":"杭州"}',
+                        },
+                    }
+                ],
+            },
+            "toolCalls": [
+                {
+                    "id": "call_weather_1",
+                    "name": "weather_lookup",
+                    "arguments": {"city": "杭州"},
+                }
+            ],
+        }
+
+    async def fake_stream_text(
+        self,  # noqa: ARG001
+        runtime_config,  # type: ignore[no-untyped-def]
+        *,
+        messages: list[dict[str, Any]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ):
+        del runtime_config, temperature, max_tokens
+        tool_messages = [
+            message for message in messages if message["role"] == "tool"
+        ]
+        assert tool_messages
+        assert "temperature" in tool_messages[0]["content"]
+        yield StreamChunk(delta="杭州今天晴，")
+        yield StreamChunk(delta="气温 26 度，适合露营。")
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", fake_send)
+    monkeypatch.setattr(
+        LiteLLMExecutor,
+        "invoke_with_tools",
+        fake_invoke_with_tools,
+        raising=False,
+    )
+    monkeypatch.setattr(LiteLLMExecutor, "stream_text", fake_stream_text)
+
+    create_response = await conversation_api_harness.client.post(
+        "/api/v1/conversations",
+        json={"agentId": conversation_api_harness.agent_id},
+        headers=conversation_api_harness.headers,
+    )
+    conversation_id = create_response.json()["data"]["id"]
+
+    async with conversation_api_harness.client.stream(
+        "POST",
+        f"/api/v1/conversations/{conversation_id}/messages/stream",
+        json={"content": "杭州今天适合露营吗？"},
+        headers={
+            **conversation_api_harness.headers,
+            "Accept": "text/event-stream",
+        },
+    ) as response:
+        body = await response.aread()
+
+    text_body = body.decode("utf-8")
+    assert response.status_code == 200
+    assert "event: tool.started" in text_body
+    assert "event: tool.completed" in text_body
+    assert "weather_lookup" in text_body
+    assert "sk-weather-tool" not in text_body
+    assert "杭州今天晴" in text_body
+
+    messages_response = await conversation_api_harness.client.get(
+        f"/api/v1/conversations/{conversation_id}/messages",
+        params={"pageSize": 100},
+        headers=conversation_api_harness.headers,
+    )
+    messages = messages_response.json()["data"]["list"]
+    assistant = messages[1]
+    assert assistant["content"] == "杭州今天晴，气温 26 度，适合露营。"
+    assert assistant["toolCalls"][0]["toolId"] == tool_id
+    assert assistant["toolCalls"][0]["status"] == "success"
+    assert assistant["toolCalls"][0]["executionLogId"] is not None
+
+    logs_response = await conversation_api_harness.client.get(
+        f"/api/v1/tools/{tool_id}/execution-logs",
+        params={"source": "conversation"},
+        headers=conversation_api_harness.headers,
+    )
+    logs = logs_response.json()["data"]
+    assert logs["total"] == 1
+    assert logs["list"][0]["status"] == "success"
+
+    async with conversation_api_harness.session_factory() as session:
+        log = await session.scalar(select(ToolExecutionLog))
+        run = await session.scalar(select(ConversationRun))
+
+    assert log is not None
+    assert log.source == "conversation"
+    assert log.conversation_id == conversation_id
+    assert log.run_id == run.id
+    assert log.request_headers_json["X-API-Key"] != "sk-weather-tool"

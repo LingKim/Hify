@@ -23,4 +23,5 @@
 - `user-management/`：内部账号管理模块
 - `conversation/`：会话与对话运行模块
 - `agent-configuration/`：Agent 配置模块
+- `agent-tool-runtime/`：Agent 工具绑定到对话运行时的调用闭环
 - `mvp-roadmap/`：MVP 功能清单对应的整体开发计划

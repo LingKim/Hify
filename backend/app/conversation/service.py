@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.agent.model import Agent
 from app.conversation.errors import ConversationErrorCode
@@ -26,6 +27,7 @@ from app.conversation.presenter import (
 from app.conversation.runtime import (
     ConversationRuntime,
     PreparedConversationRun,
+    RuntimeTool,
 )
 from app.conversation.schema import (
     ConversationAgentRuntimePreviewResp,
@@ -35,6 +37,7 @@ from app.conversation.schema import (
     ConversationListParams,
     ConversationMessageListParams,
     ConversationMessageResp,
+    ConversationRuntimeToolResp,
     ConversationStreamMessageReq,
     ConversationSummaryResp,
     ConversationUpdateReq,
@@ -45,6 +48,7 @@ from app.core.responses import PageResult
 from app.knowledge.service import KnowledgeService
 from app.llm.executor import LiteLLMExecutor
 from app.llm.provider import ProviderSecretCodec
+from app.tool.model import Tool
 
 
 class ConversationService:
@@ -283,6 +287,8 @@ class ConversationService:
             model=model,
             provider=provider,
             blocked_reason=blocked_reason,
+            tools=await self._load_runtime_tool_previews(agent, model),
+            warnings=self._build_runtime_warnings(agent, model),
         )
 
     async def prepare_stream_message(
@@ -385,6 +391,7 @@ class ConversationService:
             }
             await self.db.commit()
         model_config = agent.model_config_json or {}
+        runtime_tools = await self._load_runtime_tools(agent, model)
         return PreparedConversationRun(
             conversation=conversation,
             run=run,
@@ -397,7 +404,178 @@ class ConversationService:
                 model_config.get("maxTokens")
                 or model_config.get("max_tokens")
             ),
+            user_id=user_id,
+            tools=runtime_tools,
         )
+
+    async def _load_runtime_tool_previews(
+        self,
+        agent: Agent,
+        model: object | None,
+    ) -> list[ConversationRuntimeToolResp]:
+        """Return runtime tool preview schema payloads for one Agent."""
+        if model is None or not getattr(model, "supports_tools", False):
+            return []
+        tools = await self._load_runtime_tools(agent, model)
+        return [
+            ConversationRuntimeToolResp(
+                toolId=tool.tool_id,
+                toolName=tool.tool_name,
+                runtimeToolName=tool.runtime_tool_name,
+                description=tool.description,
+                status="enabled",
+                httpMethod=tool.http_method,
+                parameterCount=tool.parameter_count,
+            )
+            for tool in tools
+        ]
+
+    def _build_runtime_warnings(
+        self,
+        agent: Agent,
+        model: object | None,
+    ) -> list[str]:
+        enabled_tool_count = len(
+            [
+                binding
+                for binding in agent.tool_bindings
+                if binding.deleted_at is None and binding.is_enabled
+            ]
+        )
+        if enabled_tool_count > 0 and not getattr(
+            model,
+            "supports_tools",
+            False,
+        ):
+            return ["当前模型不支持工具调用，已忽略工具绑定"]
+        return []
+
+    async def _load_runtime_tools(
+        self,
+        agent: Agent,
+        model: object,
+    ) -> list[RuntimeTool]:
+        """Load enabled tools that can be exposed to the LLM."""
+        if not getattr(model, "supports_tools", False):
+            return []
+        bindings = [
+            binding
+            for binding in agent.tool_bindings
+            if binding.deleted_at is None and binding.is_enabled
+        ]
+        if not bindings:
+            return []
+
+        tool_ids = [binding.tool_id for binding in bindings]
+        statement = (
+            select(Tool)
+            .where(
+                Tool.id.in_(tool_ids),
+                Tool.status == "enabled",
+                Tool.deleted_at.is_(None),
+            )
+            .options(selectinload(Tool.parameters))
+        )
+        tools_by_id = {
+            tool.id: tool
+            for tool in list((await self.db.scalars(statement)).all())
+        }
+        runtime_tools: list[RuntimeTool] = []
+        used_names: set[str] = set()
+        for binding in sorted(bindings, key=lambda item: item.sort_order):
+            tool = tools_by_id.get(binding.tool_id)
+            if tool is None:
+                continue
+            runtime_name = self._unique_tool_name(
+                binding.binding_name or tool.name,
+                fallback=f"tool_{tool.id}",
+                used_names=used_names,
+            )
+            runtime_tools.append(
+                RuntimeTool(
+                    tool_id=tool.id,
+                    tool_name=tool.name,
+                    runtime_tool_name=runtime_name,
+                    description=tool.description,
+                    http_method=tool.http_method,
+                    parameter_count=len(
+                        [
+                            item
+                            for item in tool.parameters
+                            if item.deleted_at is None
+                        ]
+                    ),
+                    schema=self._build_litellm_tool_schema(
+                        tool,
+                        runtime_name,
+                    ),
+                )
+            )
+        return runtime_tools
+
+    def _build_litellm_tool_schema(
+        self,
+        tool: Tool,
+        runtime_name: str,
+    ) -> dict[str, object]:
+        properties: dict[str, object] = {}
+        required: list[str] = []
+        for parameter in sorted(
+            [
+                item
+                for item in tool.parameters
+                if item.deleted_at is None
+            ],
+            key=lambda item: item.sort_order,
+        ):
+            schema = dict(parameter.schema_json or {})
+            if not schema:
+                schema = {"type": parameter.schema_type}
+            if parameter.description and "description" not in schema:
+                schema["description"] = parameter.description
+            if parameter.enum_values_json and "enum" not in schema:
+                schema["enum"] = parameter.enum_values_json
+            properties[parameter.name] = schema
+            if parameter.is_required:
+                required.append(parameter.name)
+
+        return {
+            "type": "function",
+            "function": {
+                "name": runtime_name,
+                "description": tool.description or tool.name,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
+            },
+        }
+
+    def _unique_tool_name(
+        self,
+        value: str | None,
+        *,
+        fallback: str,
+        used_names: set[str],
+    ) -> str:
+        import re
+
+        raw_name = value or fallback
+        normalized = re.sub(r"[^a-zA-Z0-9_-]+", "_", raw_name).strip("_")
+        if not normalized:
+            normalized = fallback
+        if normalized[0].isdigit():
+            normalized = f"tool_{normalized}"
+
+        candidate = normalized[:64]
+        suffix = 2
+        while candidate in used_names:
+            tail = f"_{suffix}"
+            candidate = f"{normalized[:64 - len(tail)]}{tail}"
+            suffix += 1
+        used_names.add(candidate)
+        return candidate
 
     async def _inject_rag_context(
         self,

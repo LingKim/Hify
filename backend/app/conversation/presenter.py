@@ -12,7 +12,9 @@ from app.conversation.schema import (
     ConversationDetailResp,
     ConversationKnowledgeSourceResp,
     ConversationMessageResp,
+    ConversationRuntimeToolResp,
     ConversationSummaryResp,
+    ConversationToolCallResp,
 )
 from app.llm.model import ProviderInstance, ProviderModel
 
@@ -114,6 +116,7 @@ def build_message_response(
         modelSnapshot=message.model_snapshot_json,
         error=message.error_json,
         knowledgeSources=build_message_knowledge_sources(message),
+        toolCalls=build_message_tool_calls(message),
         createdAt=message.created_at,
         updatedAt=message.updated_at,
     )
@@ -154,12 +157,49 @@ def build_message_knowledge_sources(
     ]
 
 
+def build_message_tool_calls(
+    message: ConversationMessage,
+) -> list[ConversationToolCallResp]:
+    """Return tool call summaries stored on an assistant message."""
+    payload = message.tool_call_json or {}
+    calls = payload.get("calls") if isinstance(payload, dict) else None
+    if not isinstance(calls, list):
+        return []
+
+    result: list[ConversationToolCallResp] = []
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        result.append(
+            ConversationToolCallResp(
+                toolCallId=str(call.get("toolCallId") or ""),
+                toolId=int(call.get("toolId") or 0),
+                toolName=str(call.get("toolName") or "未知工具"),
+                runtimeToolName=str(call.get("runtimeToolName") or ""),
+                status=str(call.get("status") or "failed"),
+                executionLogId=call.get("executionLogId"),
+                argumentsPreview=call.get("argumentsPreview") or {},
+                responsePreview=call.get("responsePreview"),
+                latencyMs=call.get("latencyMs"),
+                errorCode=call.get("errorCode"),
+                errorMessage=call.get("errorMessage"),
+            )
+        )
+    return [
+        call
+        for call in result
+        if call.tool_call_id and call.tool_id > 0 and call.runtime_tool_name
+    ]
+
+
 def build_runtime_preview_response(
     *,
     agent: Agent,
     model: ProviderModel | None,
     provider: ProviderInstance | None,
     blocked_reason: str | None,
+    tools: list[ConversationRuntimeToolResp] | None = None,
+    warnings: list[str] | None = None,
 ) -> ConversationAgentRuntimePreviewResp:
     """Build the Agent runtime preview response for conversation pages."""
     model_payload = None
@@ -186,13 +226,13 @@ def build_runtime_preview_response(
         model=model_payload,
         openingMessage=agent.opening_message,
         enabledToolIds=[
-            binding.tool_id
-            for binding in agent.tool_bindings
-            if binding.deleted_at is None and binding.is_enabled
+            tool.tool_id for tool in (tools or [])
         ],
         enabledKnowledgeBaseIds=[
             binding.knowledge_base_id
             for binding in agent.knowledge_bindings
             if binding.deleted_at is None and binding.is_enabled
         ],
+        tools=tools or [],
+        warnings=warnings or [],
     )

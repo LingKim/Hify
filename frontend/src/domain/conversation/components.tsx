@@ -4,6 +4,7 @@ import {
   CloseCircleOutlined,
   FileSearchOutlined,
   RobotOutlined,
+  ToolOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Empty, Select, Space, Tag, Typography } from "antd";
@@ -164,6 +165,9 @@ export function MessageBubble({
         {!isUser && message.knowledgeSources.length > 0 ? (
           <KnowledgeSourceStrip sources={message.knowledgeSources} />
         ) : null}
+        {!isUser && message.toolCalls.length > 0 ? (
+          <ToolCallStrip calls={message.toolCalls} />
+        ) : null}
         <div className="conversation-message-meta">
           <Space size={6}>
             {statusIcon}
@@ -174,6 +178,43 @@ export function MessageBubble({
           </Space>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ToolCallStrip({
+  calls,
+}: {
+  calls: ConversationMessageRecord["toolCalls"];
+}): JSX.Element {
+  return (
+    <div className="conversation-knowledge-sources">
+      <div className="conversation-knowledge-source-title">
+        <ToolOutlined />
+        <span>工具调用</span>
+      </div>
+      <Space size={[6, 6]} wrap>
+        {calls.map((call) => (
+          <Tag
+            key={call.toolCallId}
+            color={
+              call.status === "success"
+                ? "success"
+                : call.status === "running"
+                  ? "processing"
+                  : "error"
+            }
+          >
+            {call.toolName}
+            {call.latencyMs != null ? ` · ${call.latencyMs}ms` : ""}
+            {call.status === "running" ? " · 调用中" : ""}
+            {call.status !== "success"
+              && call.status !== "running"
+              ? ` · ${call.errorMessage ?? "调用失败"}`
+              : ""}
+          </Tag>
+        ))}
+      </Space>
     </div>
   );
 }

@@ -222,8 +222,11 @@ export function AgentConfigurationPage(): JSX.Element {
         key: "tools",
         label: "工具绑定",
         colProps: { span: 24 },
-        render: ({ value }) => (
-          <ToolBindingsField value={value} />
+        render: ({ value, onChange }) => (
+          <ToolBindingsField
+            value={value}
+            onChange={(nextBindings) => onChange(nextBindings)}
+          />
         ),
       },
       {

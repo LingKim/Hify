@@ -6,7 +6,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-from app.conversation.runtime import PreparedConversationRun
+from app.conversation.runtime import PreparedConversationRun, RuntimeStreamEvent
 from app.conversation.service import ConversationService
 from app.core.exceptions import BizException
 
@@ -37,6 +37,9 @@ async def stream_events(
     delta_sequence = 1
     try:
         async for delta in service.runtime.stream_assistant_response(prepared):
+            if isinstance(delta, RuntimeStreamEvent):
+                yield sse(delta.event, delta.data)
+                continue
             yield sse(
                 "message.delta",
                 {
@@ -93,6 +96,7 @@ def compact_message(message: Any) -> dict[str, Any]:
         if message.created_at is not None
         else None,
         "knowledgeSources": compact_knowledge_sources(message),
+        "toolCalls": compact_tool_calls(message),
     }
 
 
@@ -102,6 +106,13 @@ def compact_knowledge_sources(message: Any) -> list[dict[str, Any]]:
     rag = metadata.get("rag") if isinstance(metadata, dict) else None
     sources = rag.get("sources") if isinstance(rag, dict) else None
     return sources if isinstance(sources, list) else []
+
+
+def compact_tool_calls(message: Any) -> list[dict[str, Any]]:
+    """Return UI-safe tool calls from message metadata."""
+    payload = getattr(message, "tool_call_json", None) or {}
+    calls = payload.get("calls") if isinstance(payload, dict) else None
+    return calls if isinstance(calls, list) else []
 
 
 def sse(event: str, data: dict[str, Any]) -> str:

@@ -22,6 +22,7 @@ from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.database import Base, get_db_session
 from app.llm.model import ProviderInstance, ProviderModel
 from app.main import app
+from app.tool.model import Tool
 
 
 def _database_url() -> str:
@@ -66,6 +67,7 @@ class AgentApiHarness:
     session_factory: async_sessionmaker[AsyncSession]
     provider_instance_id: int
     provider_model_id: int
+    tool_id: int
     headers: dict[str, str]
 
 
@@ -121,9 +123,23 @@ async def agent_api_harness() -> AgentApiHarness:
             sort_order=0,
         )
         session.add(model)
+        await session.flush()
+        tool = Tool(
+            owner_user_id=user.id,
+            name="查询订单",
+            description="按订单号查询订单",
+            status="enabled",
+            tool_type="http",
+            source_type="manual",
+            http_method="GET",
+            url="https://api.example.com/orders",
+            timeout_seconds=15,
+        )
+        session.add(tool)
         await session.commit()
         provider_instance_id = provider.id
         provider_model_id = model.id
+        tool_id = tool.id
         user_id = user.id
 
     token = create_access_token(
@@ -156,6 +172,7 @@ async def agent_api_harness() -> AgentApiHarness:
             session_factory=session_factory,
             provider_instance_id=provider_instance_id,
             provider_model_id=provider_model_id,
+            tool_id=tool_id,
             headers=headers,
         )
 
@@ -199,7 +216,7 @@ def _agent_payload(
         ),
         "tools": [
             {
-                "toolId": 10,
+                "toolId": harness.tool_id,
                 "bindingName": "查询订单",
                 "isEnabled": True,
                 "sortOrder": 0,
@@ -253,7 +270,7 @@ async def test_create_agent_accepts_workflow_draft_without_system_prompt(
     assert payload["data"]["orchestrationMode"] == "workflow"
     assert payload["data"]["systemPrompt"] is None
     assert payload["data"]["workflowRef"] == {"workflowDraftKey": "draft-only"}
-    assert payload["data"]["tools"][0]["toolId"] == 10
+    assert payload["data"]["tools"][0]["toolId"] == agent_api_harness.tool_id
     assert payload["data"]["knowledgeBases"][0]["knowledgeBaseId"] == 20
 
 
@@ -310,7 +327,7 @@ async def test_list_detail_and_preview_return_aggregated_agent_config(
     preview_payload = preview_response.json()["data"]
     assert preview_payload["agentId"] == created["id"]
     assert preview_payload["isRunnable"] is False
-    assert preview_payload["enabledToolIds"] == [10]
+    assert preview_payload["enabledToolIds"] == [agent_api_harness.tool_id]
     assert preview_payload["enabledKnowledgeBaseIds"] == [20]
 
 

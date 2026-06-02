@@ -201,6 +201,15 @@ function dispatchSseBlock(
     case "message.created":
       callbacks.onMessageCreated?.(data as never);
       break;
+    case "tool.started":
+      callbacks.onToolStarted?.(data as never);
+      break;
+    case "tool.completed":
+      callbacks.onToolCompleted?.(data as never);
+      break;
+    case "tool.failed":
+      callbacks.onToolFailed?.(data as never);
+      break;
     case "message.delta":
       callbacks.onDelta?.(data as never);
       break;

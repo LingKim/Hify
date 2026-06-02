@@ -20,6 +20,8 @@ import type {
 } from "@/domain/provider-management/types";
 import { fetchKnowledgeBaseOptions } from "@/domain/knowledge/service";
 import type { KnowledgeBaseOption } from "@/domain/knowledge/types";
+import { fetchToolOptions } from "@/domain/tool-integration/service";
+import type { ToolOptionRecord } from "@/domain/tool-integration/types";
 
 export const agentStatusOptions: Array<{ label: string; value: AgentStatus }> = [
   { label: "草稿", value: "draft" },
@@ -210,18 +212,60 @@ export function ProviderModelSelectField({
 
 export function ToolBindingsField({
   value,
+  onChange,
 }: {
   value: unknown;
+  onChange: (value: AgentToolBinding[]) => void;
 }): JSX.Element {
   const bindings = Array.isArray(value) ? (value as AgentToolBinding[]) : [];
+  const toolOptionsQuery = useQuery({
+    queryKey: ["tools", "options", "agent-binding"],
+    queryFn: ({ signal }) => fetchToolOptions({ status: "enabled" }, signal),
+  });
+  const selectedIds = bindings
+    .filter((item) => item.isEnabled)
+    .map((item) => item.toolId);
+  const options = useMemo(
+    () => (toolOptionsQuery.data ?? []).map(buildToolOption),
+    [toolOptionsQuery.data],
+  );
+
   return (
     <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-      <Alert
-        showIcon
-        type="info"
-        title="工具模块完成后，将在这里从工具列表选择绑定。"
-        description="当前不再让业务用户手动输入工具 ID；已有绑定会保留并随表单一起保存。"
+      <Select
+        allowClear
+        mode="multiple"
+        optionFilterProp="label"
+        loading={toolOptionsQuery.isFetching}
+        placeholder="选择要让 Agent 调用的工具"
+        options={options}
+        value={selectedIds}
+        onChange={(nextIds: number[]) => {
+          onChange(
+            nextIds.map((toolId, index) => {
+              const existingBinding = bindings.find(
+                (binding) => binding.toolId === toolId,
+              );
+              return {
+                toolId,
+                bindingName: existingBinding?.bindingName ?? null,
+                isEnabled: true,
+                sortOrder: existingBinding?.sortOrder ?? index,
+                config: existingBinding?.config ?? null,
+                metadata: existingBinding?.metadata ?? null,
+              };
+            }),
+          );
+        }}
       />
+      {toolOptionsQuery.data?.length === 0 ? (
+        <Alert
+          showIcon
+          type="warning"
+          message="暂无可绑定工具"
+          description="请先在工具集成页创建并启用工具，通过测试后再绑定到 Agent。"
+        />
+      ) : null}
       {bindings.length > 0 ? (
         <Space size={[6, 6]} wrap>
           {bindings.map((item) => (
@@ -231,6 +275,14 @@ export function ToolBindingsField({
       ) : null}
     </Space>
   );
+}
+
+function buildToolOption(item: ToolOptionRecord) {
+  return {
+    value: item.id,
+    label: item.name,
+    title: item.name,
+  };
 }
 
 export function KnowledgeBindingsField({

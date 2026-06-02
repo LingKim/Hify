@@ -107,6 +107,20 @@ class ConversationAgentModelResp(BaseModel):
     supports_stream: bool = Field(alias="supportsStream")
 
 
+class ConversationRuntimeToolResp(BaseModel):
+    """Runtime tool summary exposed by one Agent."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    tool_id: int = Field(alias="toolId")
+    tool_name: str = Field(alias="toolName")
+    runtime_tool_name: str = Field(alias="runtimeToolName")
+    description: str | None = None
+    status: str
+    http_method: str = Field(alias="httpMethod")
+    parameter_count: int = Field(alias="parameterCount")
+
+
 class ConversationAgentRuntimePreviewResp(BaseModel):
     """Runnable preview for one agent in conversation context."""
 
@@ -124,6 +138,8 @@ class ConversationAgentRuntimePreviewResp(BaseModel):
     enabled_knowledge_base_ids: list[int] = Field(
         alias="enabledKnowledgeBaseIds",
     )
+    tools: list[ConversationRuntimeToolResp] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class ConversationSummaryResp(BaseModel):
@@ -174,6 +190,27 @@ class ConversationKnowledgeSourceResp(BaseModel):
     snippet: str | None = None
 
 
+class ConversationToolCallResp(BaseModel):
+    """UI-safe tool call summary stored on an assistant message."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    tool_call_id: str = Field(alias="toolCallId")
+    tool_id: int = Field(alias="toolId")
+    tool_name: str = Field(alias="toolName")
+    runtime_tool_name: str = Field(alias="runtimeToolName")
+    status: str
+    execution_log_id: int | None = Field(default=None, alias="executionLogId")
+    arguments_preview: dict[str, Any] = Field(
+        default_factory=dict,
+        alias="argumentsPreview",
+    )
+    response_preview: str | None = Field(default=None, alias="responsePreview")
+    latency_ms: int | None = Field(default=None, alias="latencyMs")
+    error_code: str | None = Field(default=None, alias="errorCode")
+    error_message: str | None = Field(default=None, alias="errorMessage")
+
+
 class ConversationMessageResp(BaseModel):
     """Conversation message payload."""
 
@@ -197,6 +234,10 @@ class ConversationMessageResp(BaseModel):
     knowledge_sources: list[ConversationKnowledgeSourceResp] = Field(
         default_factory=list,
         alias="knowledgeSources",
+    )
+    tool_calls: list[ConversationToolCallResp] = Field(
+        default_factory=list,
+        alias="toolCalls",
     )
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")

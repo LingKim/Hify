@@ -61,6 +61,7 @@ function createLocalMessage(
     modelSnapshot: null,
     error: null,
     knowledgeSources: [],
+    toolCalls: [],
     createdAt: now,
     updatedAt: now,
     isLocal: true,
@@ -216,6 +217,7 @@ export function ChatPage(): JSX.Element {
               createdAt: event.userMessage.createdAt,
               updatedAt: event.userMessage.createdAt,
               knowledgeSources: event.userMessage.knowledgeSources ?? [],
+              toolCalls: event.userMessage.toolCalls ?? [],
             },
             {
               ...createLocalMessage(
@@ -230,8 +232,84 @@ export function ChatPage(): JSX.Element {
               updatedAt: event.assistantMessage.createdAt,
               knowledgeSources:
                 event.assistantMessage.knowledgeSources ?? [],
+              toolCalls: event.assistantMessage.toolCalls ?? [],
             },
           ]);
+        },
+        onToolStarted: (event) => {
+          setLocalMessages((current) =>
+            current.map((item) =>
+              item.role === "assistant"
+                ? {
+                    ...item,
+                    toolCalls: [
+                      ...item.toolCalls.filter(
+                        (call) => call.toolCallId !== event.toolCallId,
+                      ),
+                      {
+                        toolCallId: event.toolCallId,
+                        toolId: event.toolId,
+                        toolName: event.toolName,
+                        runtimeToolName: event.runtimeToolName,
+                        status: "running",
+                        executionLogId: null,
+                        argumentsPreview: event.argumentsPreview,
+                        responsePreview: "正在调用...",
+                        latencyMs: null,
+                        errorCode: null,
+                        errorMessage: null,
+                      },
+                    ],
+                  }
+                : item,
+            ),
+          );
+        },
+        onToolCompleted: (event) => {
+          setLocalMessages((current) =>
+            current.map((item) =>
+              item.role === "assistant"
+                ? {
+                    ...item,
+                    toolCalls: item.toolCalls.map((call) =>
+                      call.toolCallId === event.toolCallId
+                        ? {
+                            ...call,
+                            status: "success",
+                            executionLogId: event.executionLogId,
+                            responsePreview: event.responsePreview,
+                            latencyMs: event.latencyMs,
+                          }
+                        : call,
+                    ),
+                  }
+                : item,
+            ),
+          );
+        },
+        onToolFailed: (event) => {
+          setLocalMessages((current) =>
+            current.map((item) =>
+              item.role === "assistant"
+                ? {
+                    ...item,
+                    toolCalls: item.toolCalls.map((call) =>
+                      call.toolCallId === event.toolCallId
+                        ? {
+                            ...call,
+                            status: event.status,
+                            executionLogId: event.executionLogId,
+                            latencyMs: event.latencyMs,
+                            errorCode: event.errorCode,
+                            errorMessage: event.errorMessage,
+                            responsePreview: null,
+                          }
+                        : call,
+                    ),
+                  }
+                : item,
+            ),
+          );
         },
         onDelta: (event) => {
           setLocalMessages((current) =>
@@ -253,6 +331,7 @@ export function ChatPage(): JSX.Element {
                     status: event.message.status,
                     sequence: event.message.sequence,
                     knowledgeSources: event.message.knowledgeSources ?? [],
+                    toolCalls: event.message.toolCalls ?? [],
                   }
                 : item,
             ),

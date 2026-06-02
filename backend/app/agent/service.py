@@ -26,6 +26,7 @@ from app.agent.schema import (
 from app.core.errors import CommonErrorCode
 from app.core.exceptions import BizException
 from app.core.responses import PageResult
+from app.tool.model import Tool
 
 
 class AgentService:
@@ -307,6 +308,49 @@ class AgentService:
                     message="目标模型不存在或已删除",
                     http_status=status.HTTP_404_NOT_FOUND,
                 )
+
+        await self._validate_tool_bindings(payload.tools)
+
+    async def _validate_tool_bindings(
+        self,
+        bindings: list[AgentToolBindingInput],
+    ) -> None:
+        enabled_tool_ids = sorted(
+            {binding.tool_id for binding in bindings if binding.is_enabled}
+        )
+        if not enabled_tool_ids:
+            return
+
+        statement = select(Tool.id, Tool.status).where(
+            Tool.id.in_(enabled_tool_ids),
+            Tool.deleted_at.is_(None),
+        )
+        rows = list((await self.db.execute(statement)).all())
+        status_by_id = {
+            int(tool_id): status_value for tool_id, status_value in rows
+        }
+        missing_ids = [
+            tool_id
+            for tool_id in enabled_tool_ids
+            if tool_id not in status_by_id
+        ]
+        if missing_ids:
+            raise BizException(
+                code=AgentErrorCode.TOOL_NOT_FOUND,
+                message="绑定工具不存在或已删除",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
+        unavailable_ids = [
+            tool_id
+            for tool_id, status_value in status_by_id.items()
+            if status_value != "enabled"
+        ]
+        if unavailable_ids:
+            raise BizException(
+                code=AgentErrorCode.INVALID_CONFIGURATION,
+                message="只能绑定已启用的工具",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
 
     async def _load_model_summaries(
         self,

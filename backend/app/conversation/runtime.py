@@ -1,10 +1,10 @@
 """Conversation runtime orchestration helpers."""
 
-from __future__ import annotations
-
+import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from time import perf_counter
+from typing import Any
 
 from fastapi import status
 from sqlalchemy import func, select
@@ -29,6 +29,28 @@ from app.llm.provider import (
     ProviderSecretCodec,
     resolve_litellm_model,
 )
+from app.tool.service import ToolService
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeTool:
+    """A tool exposed to the model during one conversation run."""
+
+    tool_id: int
+    tool_name: str
+    runtime_tool_name: str
+    description: str | None
+    http_method: str
+    parameter_count: int
+    schema: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeStreamEvent:
+    """Non-token event emitted while streaming a conversation run."""
+
+    event: str
+    data: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +65,8 @@ class PreparedConversationRun:
     messages: list[dict[str, str]]
     temperature: float | None
     max_tokens: int | None
+    user_id: int
+    tools: list[RuntimeTool]
 
 
 class ConversationRuntime:
@@ -181,32 +205,129 @@ class ConversationRuntime:
     async def stream_assistant_response(
         self,
         prepared: PreparedConversationRun,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | RuntimeStreamEvent]:
         """Yield assistant deltas and persist final stream state."""
         content_parts: list[str] = []
         start_clock = perf_counter()
         try:
-            async for chunk in self.executor.stream_text(
-                prepared.runtime_config,
-                messages=prepared.messages,
-                temperature=prepared.temperature,
-                max_tokens=prepared.max_tokens,
-            ):
-                content_parts.append(chunk.delta)
-                yield chunk.delta
+            if prepared.tools:
+                async for event in self._stream_with_tools(
+                    prepared,
+                    content_parts,
+                ):
+                    yield event
+            else:
+                async for chunk in self.executor.stream_text(
+                    prepared.runtime_config,
+                    messages=prepared.messages,
+                    temperature=prepared.temperature,
+                    max_tokens=prepared.max_tokens,
+                ):
+                    content_parts.append(chunk.delta)
+                    yield chunk.delta
         except BizException as exc:
             await self.mark_stream_failed(prepared, exc)
             raise
 
         output_text = "".join(content_parts)
         latency_ms = int((perf_counter() - start_clock) * 1000)
-        await self.mark_stream_completed(prepared, output_text, latency_ms)
+        tool_calls = self._collect_tool_calls(prepared)
+        await self.mark_stream_completed(
+            prepared,
+            output_text,
+            latency_ms,
+            tool_calls=tool_calls,
+        )
+
+    async def _stream_with_tools(
+        self,
+        prepared: PreparedConversationRun,
+        content_parts: list[str],
+    ) -> AsyncIterator[str | RuntimeStreamEvent]:
+        tool_definitions = [tool.schema for tool in prepared.tools]
+        decision = await self.executor.invoke_with_tools(
+            prepared.runtime_config,
+            messages=prepared.messages,
+            tools=tool_definitions,
+            temperature=prepared.temperature,
+            max_tokens=prepared.max_tokens,
+        )
+        assistant_message, tool_calls = self._normalize_tool_decision(decision)
+        if not tool_calls:
+            content = str(assistant_message.get("content") or "")
+            if content:
+                content_parts.append(content)
+                yield content
+            return
+
+        followup_messages: list[dict[str, Any]] = list(prepared.messages)
+        followup_messages.append(assistant_message)
+        tool_lookup = {tool.runtime_tool_name: tool for tool in prepared.tools}
+        tool_summaries: list[dict[str, Any]] = []
+        tool_service = ToolService(self.db)
+        for call in tool_calls:
+            runtime_tool = tool_lookup.get(call["name"])
+            if runtime_tool is None:
+                summary = self._unknown_tool_summary(prepared, call)
+                tool_summaries.append(summary)
+                yield RuntimeStreamEvent("tool.failed", summary)
+                followup_messages.append(self._tool_message(call, summary))
+                continue
+
+            started = {
+                "runId": prepared.run.id,
+                "conversationId": prepared.conversation.id,
+                "messageId": prepared.assistant_message.id,
+                "toolCallId": call["id"],
+                "toolId": runtime_tool.tool_id,
+                "toolName": runtime_tool.tool_name,
+                "runtimeToolName": runtime_tool.runtime_tool_name,
+                "argumentsPreview": self._mask_mapping(call["arguments"]),
+                "startedAt": utc_now().isoformat(),
+            }
+            yield RuntimeStreamEvent("tool.started", started)
+            result = await tool_service.execute_conversation(
+                runtime_tool.tool_id,
+                call["arguments"],
+                user_id=prepared.user_id,
+                conversation_id=prepared.conversation.id,
+                run_id=prepared.run.id,
+                tool_call_id=call["id"],
+                runtime_tool_name=runtime_tool.runtime_tool_name,
+            )
+            summary = self._tool_result_summary(
+                prepared,
+                call,
+                runtime_tool,
+                result,
+            )
+            tool_summaries.append(summary)
+            event_name = (
+                "tool.completed"
+                if summary["status"] == "success"
+                else "tool.failed"
+            )
+            yield RuntimeStreamEvent(event_name, summary)
+            followup_messages.append(self._tool_message(call, summary))
+
+        prepared.assistant_message.tool_call_json = {"calls": tool_summaries}
+        await self.db.commit()
+        async for chunk in self.executor.stream_text(
+            prepared.runtime_config,
+            messages=followup_messages,
+            temperature=prepared.temperature,
+            max_tokens=prepared.max_tokens,
+        ):
+            content_parts.append(chunk.delta)
+            yield chunk.delta
 
     async def mark_stream_completed(
         self,
         prepared: PreparedConversationRun,
         output_text: str,
         latency_ms: int,
+        *,
+        tool_calls: list[dict[str, Any]] | None = None,
     ) -> None:
         """Persist a completed stream."""
         assistant = await self.db.get(
@@ -225,18 +346,151 @@ class ConversationRuntime:
         assistant.content = output_text
         assistant.status = "completed"
         assistant.latency_ms = latency_ms
+        if tool_calls:
+            assistant.tool_call_json = {"calls": tool_calls}
         assistant.updated_at = now
         assistant.version += 1
         run.status = "completed"
         run.completed_at = now
         run.latency_ms = latency_ms
-        run.response_json = {"finishReason": "stop"}
+        run.response_json = {
+            "finishReason": "stop",
+            "toolCalls": tool_calls or [],
+        }
         run.version += 1
         conversation.last_message_role = "assistant"
         conversation.last_message_preview = preview_text(output_text)
         conversation.last_message_at = now
         conversation.version += 1
         await self.db.commit()
+
+    def _collect_tool_calls(
+        self,
+        prepared: PreparedConversationRun,
+    ) -> list[dict[str, Any]]:
+        payload = prepared.assistant_message.tool_call_json or {}
+        calls = payload.get("calls") if isinstance(payload, dict) else None
+        return calls if isinstance(calls, list) else []
+
+    def _normalize_tool_decision(
+        self,
+        decision: Any,
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        if isinstance(decision, dict):
+            assistant = decision.get("assistantMessage") or {
+                "role": "assistant",
+                "content": "",
+            }
+            calls = decision.get("toolCalls") or []
+            return dict(assistant), [
+                self._normalize_tool_call(call) for call in calls
+            ]
+
+        assistant = getattr(decision, "assistant_message", None) or {
+            "role": "assistant",
+            "content": "",
+        }
+        calls = getattr(decision, "tool_calls", None) or []
+        return dict(assistant), [
+            self._normalize_tool_call(call) for call in calls
+        ]
+
+    def _normalize_tool_call(self, call: Any) -> dict[str, Any]:
+        call_id = self._read_value(call, "id") or "tool_call"
+        name = self._read_value(call, "name") or ""
+        arguments = self._read_value(call, "arguments") or {}
+        return {
+            "id": str(call_id),
+            "name": str(name),
+            "arguments": arguments if isinstance(arguments, dict) else {},
+        }
+
+    def _read_value(self, value: Any, key: str) -> Any:
+        if isinstance(value, dict):
+            return value.get(key)
+        return getattr(value, key, None)
+
+    def _unknown_tool_summary(
+        self,
+        prepared: PreparedConversationRun,
+        call: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "runId": prepared.run.id,
+            "conversationId": prepared.conversation.id,
+            "messageId": prepared.assistant_message.id,
+            "toolCallId": call["id"],
+            "toolId": 0,
+            "toolName": call["name"],
+            "runtimeToolName": call["name"],
+            "status": "failed",
+            "executionLogId": None,
+            "argumentsPreview": self._mask_mapping(call["arguments"]),
+            "responsePreview": None,
+            "latencyMs": None,
+            "errorCode": "unknown_tool",
+            "errorMessage": "模型请求调用未知工具",
+            "retryable": False,
+            "completedAt": utc_now().isoformat(),
+        }
+
+    def _tool_result_summary(
+        self,
+        prepared: PreparedConversationRun,
+        call: dict[str, Any],
+        runtime_tool: RuntimeTool,
+        result: Any,
+    ) -> dict[str, Any]:
+        return {
+            "runId": prepared.run.id,
+            "conversationId": prepared.conversation.id,
+            "messageId": prepared.assistant_message.id,
+            "toolCallId": call["id"],
+            "toolId": runtime_tool.tool_id,
+            "toolName": runtime_tool.tool_name,
+            "runtimeToolName": runtime_tool.runtime_tool_name,
+            "status": result.status,
+            "executionLogId": result.log_id,
+            "argumentsPreview": self._mask_mapping(call["arguments"]),
+            "responseStatusCode": result.response.status_code,
+            "responsePreview": result.response.body_preview,
+            "latencyMs": result.latency_ms,
+            "errorCode": result.error_code,
+            "errorMessage": result.error_message,
+            "retryable": result.status in {"timeout", "failed"},
+            "completedAt": result.created_at.isoformat(),
+        }
+
+    def _tool_message(
+        self,
+        call: dict[str, Any],
+        summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        content = {
+            "status": summary["status"],
+            "responsePreview": summary.get("responsePreview"),
+            "errorCode": summary.get("errorCode"),
+            "errorMessage": summary.get("errorMessage"),
+        }
+        return {
+            "role": "tool",
+            "tool_call_id": call["id"],
+            "name": call["name"],
+            "content": json.dumps(content, ensure_ascii=False),
+        }
+
+    def _mask_mapping(self, values: dict[str, Any]) -> dict[str, Any]:
+        masked: dict[str, Any] = {}
+        for key, value in values.items():
+            lowered = key.lower()
+            if any(
+                marker in lowered
+                for marker in ("token", "password", "secret", "key")
+            ):
+                masked[key] = "***"
+            else:
+                masked[key] = value
+        return masked
 
     async def mark_stream_failed(
         self,
@@ -261,7 +515,10 @@ class ConversationRuntime:
             run.version += 1
         await self.db.commit()
 
-    async def _load_provider_model(self, provider_model_id: int) -> ProviderModel:
+    async def _load_provider_model(
+        self,
+        provider_model_id: int,
+    ) -> ProviderModel:
         statement = (
             select(ProviderModel)
             .where(

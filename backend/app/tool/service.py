@@ -335,6 +335,98 @@ class ToolService:
             response=response,
         )
 
+    async def execute_conversation(
+        self,
+        tool_id: int,
+        parameters: dict[str, Any],
+        *,
+        user_id: int,
+        conversation_id: int,
+        run_id: int,
+        tool_call_id: str,
+        runtime_tool_name: str,
+    ) -> ToolExecutionResp:
+        """Execute one enabled tool from a conversation run."""
+        tool = await self._get_tool_or_raise(tool_id)
+        if tool.status != "enabled":
+            raise BizException(
+                code=ToolErrorCode.INVALID_TOOL_CONFIGURATION,
+                message="当前工具状态不允许会话调用",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+        prepared = self._prepare_request(tool, parameters)
+        metadata = {
+            "toolCallId": tool_call_id,
+            "runtimeToolName": runtime_tool_name,
+            "argumentsPreview": self._mask_mapping(parameters),
+        }
+        start = perf_counter()
+        try:
+            async with httpx.AsyncClient(
+                timeout=tool.timeout_seconds,
+                trust_env=False,
+            ) as client:
+                request = client.build_request(
+                    prepared.method,
+                    prepared.url,
+                    headers=prepared.headers,
+                    params=prepared.params,
+                    json=prepared.json_body,
+                )
+                response = await client.send(request)
+        except httpx.TimeoutException as exc:
+            latency_ms = int((perf_counter() - start) * 1000)
+            return await self._save_execution(
+                tool,
+                prepared,
+                user_id=user_id,
+                status_value="timeout",
+                latency_ms=latency_ms,
+                source="conversation",
+                conversation_id=conversation_id,
+                run_id=run_id,
+                metadata=metadata,
+                update_tool_health=False,
+                error_code="timeout",
+                error_message=str(exc),
+            )
+        except httpx.TransportError as exc:
+            latency_ms = int((perf_counter() - start) * 1000)
+            return await self._save_execution(
+                tool,
+                prepared,
+                user_id=user_id,
+                status_value="failed",
+                latency_ms=latency_ms,
+                source="conversation",
+                conversation_id=conversation_id,
+                run_id=run_id,
+                metadata=metadata,
+                update_tool_health=False,
+                error_code="transport_error",
+                error_message=str(exc),
+            )
+
+        latency_ms = int((perf_counter() - start) * 1000)
+        status_value = "success" if response.is_success else "failed"
+        return await self._save_execution(
+            tool,
+            prepared,
+            user_id=user_id,
+            status_value=status_value,
+            latency_ms=latency_ms,
+            source="conversation",
+            conversation_id=conversation_id,
+            run_id=run_id,
+            metadata=metadata,
+            update_tool_health=False,
+            response=response,
+            error_code=None if response.is_success else "http_error",
+            error_message=None
+            if response.is_success
+            else f"上游接口返回 {response.status_code}",
+        )
+
     async def list_execution_logs(
         self,
         tool_id: int,
@@ -692,6 +784,11 @@ class ToolService:
         user_id: int,
         status_value: str,
         latency_ms: int,
+        source: str = "test",
+        conversation_id: int | None = None,
+        run_id: int | None = None,
+        metadata: dict[str, Any] | None = None,
+        update_tool_health: bool = True,
         response: httpx.Response | None = None,
         error_code: str | None = None,
         error_message: str | None = None,
@@ -703,7 +800,9 @@ class ToolService:
         log = ToolExecutionLog(
             tool_id=tool.id,
             executor_user_id=user_id,
-            source="test",
+            conversation_id=conversation_id,
+            run_id=run_id,
+            source=source,
             status=status_value,
             request_method=prepared.method,
             request_url=str(httpx.URL(prepared.url, params=prepared.params)),
@@ -717,13 +816,15 @@ class ToolService:
             latency_ms=latency_ms,
             error_code=error_code,
             error_message=error_message,
+            metadata_json=metadata,
         )
         self.db.add(log)
-        tool.last_test_status = status_value
-        tool.last_test_at = utc_now()
-        tool.last_test_latency_ms = latency_ms
-        tool.last_error_message = error_message
-        tool.version += 1
+        if update_tool_health:
+            tool.last_test_status = status_value
+            tool.last_test_at = utc_now()
+            tool.last_test_latency_ms = latency_ms
+            tool.last_error_message = error_message
+            tool.version += 1
         await self.db.commit()
         await self.db.refresh(log)
         return ToolExecutionResp(
@@ -972,6 +1073,19 @@ class ToolService:
                 masked[key] = value
             else:
                 masked[key] = mask_secret(value)
+        return masked
+
+    def _mask_mapping(self, values: dict[str, Any]) -> dict[str, Any]:
+        masked: dict[str, Any] = {}
+        for key, value in values.items():
+            lowered = key.lower()
+            if any(
+                marker in lowered
+                for marker in ("token", "password", "secret", "key")
+            ):
+                masked[key] = "***"
+            else:
+                masked[key] = value
         return masked
 
     def _preview(self, value: Any | None) -> str | None:
