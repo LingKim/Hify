@@ -333,6 +333,10 @@ class ToolService:
             status_value=status_value,
             latency_ms=latency_ms,
             response=response,
+            error_code=None if response.is_success else "http_error",
+            error_message=None
+            if response.is_success
+            else f"上游接口返回 {response.status_code}",
         )
 
     async def execute_conversation(

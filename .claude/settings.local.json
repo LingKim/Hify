@@ -23,7 +23,19 @@
       "Bash(python3 *)",
       "Bash(tmux new-session *)",
       "Bash(npx vite *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/landing)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/landing)",
+      "Bash(pg_isready -h 127.0.0.1 -p 5432)",
+      "Bash(.venv/bin/python -c \"import asyncpg, asyncio; asyncio.run\\(asyncio.wait_for\\(asyncpg.connect\\('postgresql://postgres:postgres@127.0.0.1:5432/hify'\\), timeout=3\\)\\)\")",
+      "Bash(.venv/bin/alembic current *)",
+      "Bash(.venv/bin/pytest tests/test_tool_api.py -x -q)",
+      "Bash(.venv/bin/pytest tests/test_conversation_api.py -x -q)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/pytest tests/test_tool_real_http.py -x -v)",
+      "Bash(.venv/bin/pytest tests/test_tool_real_http.py -v)",
+      "Bash(.venv/bin/pytest tests/test_conversation_real_tool.py -v)",
+      "Bash(.venv/bin/pytest tests/test_tool_api.py tests/test_conversation_api.py tests/test_tool_real_http.py tests/test_conversation_real_tool.py -v)",
+      "Bash(.venv/bin/pytest tests/test_tool_real_http.py::test_execute_test_propagates_5xx_as_failed -v)",
+      "Bash(.venv/bin/pytest tests/test_tool_api.py tests/test_conversation_api.py tests/test_tool_real_http.py tests/test_conversation_real_tool.py)"
     ]
   }
 }
