@@ -20,7 +20,6 @@ async def test_create_tool_route_exists() -> None:
         username="member",
         email="member@hify.ai",
         password_hash="hash",
-        role="member",
         is_active=True,
     )
 

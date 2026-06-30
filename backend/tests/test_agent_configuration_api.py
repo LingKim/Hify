@@ -98,7 +98,6 @@ async def agent_api_harness() -> AgentApiHarness:
             username="member",
             email="member@hify.ai",
             password_hash=hash_password("Member123!"),
-            role="member",
             is_active=True,
         )
         session.add(user)

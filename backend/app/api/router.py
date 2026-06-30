@@ -10,6 +10,7 @@ from app.core.observability import get_readiness_snapshot
 from app.core.responses import Result
 from app.knowledge.router import router as knowledge_router
 from app.llm.router import router as llm_router
+from app.rbac.router import router as rbac_router
 from app.tool.router import router as tool_router
 from app.user.router import router as user_router
 
@@ -55,6 +56,7 @@ async def versioned_readiness(
 
 
 api_router.include_router(auth_router)
+api_router.include_router(rbac_router)
 api_router.include_router(llm_router)
 api_router.include_router(tool_router)
 api_router.include_router(agent_router)

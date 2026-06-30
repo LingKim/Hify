@@ -1,17 +1,6 @@
 import { Tag } from "antd";
 import type { FormDialogOption } from "@/shared/ui";
-import type { UserRole } from "@/domain/user-management/types";
-
-export const userRoleOptions: FormDialogOption[] = [
-  {
-    label: "管理员",
-    value: "admin",
-  },
-  {
-    label: "普通用户",
-    value: "member",
-  },
-];
+import type { UserRoleRef } from "@/domain/user-management/types";
 
 export const userStatusOptions: FormDialogOption[] = [
   {
@@ -24,10 +13,26 @@ export const userStatusOptions: FormDialogOption[] = [
   },
 ];
 
-export function UserRoleTag({ role }: { role: UserRole }): JSX.Element {
-  const color = role === "admin" ? "blue" : "default";
-  const label = role === "admin" ? "管理员" : "普通用户";
-  return <Tag color={color}>{label}</Tag>;
+export function UserRoleTags({
+  roles,
+}: {
+  roles: UserRoleRef[];
+}): JSX.Element {
+  if (roles.length === 0) {
+    return <Tag color="default">未分配</Tag>;
+  }
+  return (
+    <>
+      {roles.map((role) => (
+        <Tag
+          key={role.id}
+          color={role.code === "admin" ? "blue" : "default"}
+        >
+          {role.name}
+        </Tag>
+      ))}
+    </>
+  );
 }
 
 export function UserStatusTag({

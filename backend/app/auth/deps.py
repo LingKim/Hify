@@ -51,9 +51,15 @@ async def get_current_active_user(
 
 async def require_admin_user(
     current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db_session),
 ) -> User:
-    """Return the current user if it has administrator privileges."""
-    if current_user.role != "admin":
+    """Return the current user if it has RBAC management privileges."""
+    from app.rbac.service import RbacService
+
+    if not await RbacService(db).user_has_permission(
+        current_user.id,
+        "rbac.manage",
+    ):
         raise BizException(
             code=CommonErrorCode.FORBIDDEN,
             message="权限不足",

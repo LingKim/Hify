@@ -27,7 +27,6 @@ from app.llm.provider import (
 from app.tool.model import Tool, ToolAuthSecret, ToolExecutionLog, ToolParameter
 from app.tool.schema import ToolExecuteTestReq
 from app.tool.service import ToolService
-
 from tests._p4_echo import ToolEchoServer, start_echo_server
 
 
@@ -103,7 +102,6 @@ async def real_http_harness() -> RealHttpHarness:
             username="real",
             email="real@hify.ai",
             password_hash=hash_password("Real12345!"),
-            role="member",
             is_active=True,
         )
         session.add(user)

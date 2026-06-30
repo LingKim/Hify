@@ -12,8 +12,13 @@ from app.auth.password import hash_password
 from app.core.errors import CommonErrorCode
 from app.core.exceptions import BizException
 from app.core.responses import PageResult
+from app.rbac.model import Role, UserRoleBinding
+from app.rbac.service import (
+    MEMBER_ROLE_CODE,
+    RBAC_MANAGE_PERMISSION,
+    RbacService,
+)
 from app.user.schema import (
-    ROLE_LABELS,
     UserCreateReq,
     UserDetailResp,
     UserListParams,
@@ -22,8 +27,6 @@ from app.user.schema import (
     UserSummaryResp,
     UserUpdateReq,
 )
-
-ADMIN_ROLE = "admin"
 
 
 class UserService:
@@ -47,8 +50,15 @@ class UserService:
                     User.email.ilike(keyword),
                 )
             )
-        if params.role:
-            filters.append(User.role == params.role)
+        if params.role_id:
+            filters.append(
+                User.id.in_(
+                    select(UserRoleBinding.user_id).where(
+                        UserRoleBinding.role_id == params.role_id,
+                        UserRoleBinding.deleted_at.is_(None),
+                    )
+                )
+            )
         if params.is_active is not None:
             filters.append(User.is_active.is_(params.is_active))
 
@@ -66,7 +76,9 @@ class UserService:
         )
         users = list((await self.db.scalars(statement)).all())
         return PageResult.create(
-            items=[self._build_summary_response(user) for user in users],
+            items=[
+                await self._build_summary_response(user) for user in users
+            ],
             total=total,
             page=params.page,
             page_size=params.page_size,
@@ -75,7 +87,7 @@ class UserService:
     async def get_user(self, user_id: int) -> UserDetailResp:
         """Return one user detail payload."""
         user = await self._get_user_or_raise(user_id)
-        return self._build_detail_response(user)
+        return await self._build_detail_response(user)
 
     async def create_user(self, payload: UserCreateReq) -> UserDetailResp:
         """Create one user account."""
@@ -86,10 +98,12 @@ class UserService:
             username=payload.username,
             email=payload.email,
             password_hash=hash_password(payload.password),
-            role=payload.role,
             is_active=payload.is_active,
         )
         self.db.add(user)
+        await self.db.flush()
+        member_role = await self._get_member_role()
+        self.db.add(UserRoleBinding(user_id=user.id, role_id=member_role.id))
         await self.db.commit()
         return await self.get_user(user.id)
 
@@ -108,20 +122,16 @@ class UserService:
         )
         await self._ensure_email_unique(payload.email, exclude_id=user_id)
 
-        await self._ensure_admin_not_removed(
-            target_user=user,
-            next_role=payload.role,
-            next_is_active=payload.is_active,
-        )
         if actor_user_id == user.id and not payload.is_active:
             raise BizException(
                 code=CommonErrorCode.VALIDATION_ERROR,
                 message="不能禁用当前登录用户",
             )
+        if user.is_active and not payload.is_active:
+            await self._ensure_rbac_manager_not_removed(user.id)
 
         user.username = payload.username
         user.email = payload.email
-        user.role = payload.role
         user.is_active = payload.is_active
         user.version += 1
 
@@ -149,11 +159,7 @@ class UserService:
                 code=CommonErrorCode.VALIDATION_ERROR,
                 message="不能禁用当前登录用户",
             )
-        await self._ensure_admin_not_removed(
-            target_user=user,
-            next_role=user.role,
-            next_is_active=False,
-        )
+        await self._ensure_rbac_manager_not_removed(user.id)
         user.is_active = False
         user.version += 1
         await self.db.commit()
@@ -189,11 +195,7 @@ class UserService:
                 code=CommonErrorCode.VALIDATION_ERROR,
                 message="不能删除当前登录用户",
             )
-        await self._ensure_admin_not_removed(
-            target_user=user,
-            next_role=user.role,
-            next_is_active=False,
-        )
+        await self._ensure_rbac_manager_not_removed(user.id)
         user.soft_delete()
         user.version += 1
         await self.db.commit()
@@ -246,56 +248,69 @@ class UserService:
                 http_status=status.HTTP_409_CONFLICT,
             )
 
-    async def _ensure_admin_not_removed(
-        self,
-        *,
-        target_user: User,
-        next_role: str,
-        next_is_active: bool,
-    ) -> None:
-        if target_user.role != ADMIN_ROLE or not target_user.is_active:
-            return
-        if next_role == ADMIN_ROLE and next_is_active:
-            return
-
-        active_admin_count = await self._count_active_admins(
-            exclude_user_id=target_user.id,
+    async def _ensure_rbac_manager_not_removed(self, user_id: int) -> None:
+        service = RbacService(self.db)
+        has_permission = await service.user_has_permission(
+            user_id,
+            RBAC_MANAGE_PERMISSION,
         )
-        if active_admin_count == 0:
+        if not has_permission:
+            return
+        statement = (
+            select(User.id)
+            .join(UserRoleBinding, UserRoleBinding.user_id == User.id)
+            .join(Role, Role.id == UserRoleBinding.role_id)
+            .where(
+                User.deleted_at.is_(None),
+                User.is_active.is_(True),
+                User.id != user_id,
+                UserRoleBinding.deleted_at.is_(None),
+                Role.deleted_at.is_(None),
+                Role.status == "enabled",
+            )
+        )
+        candidates = list((await self.db.scalars(statement)).all())
+        for candidate_id in candidates:
+            if await service.user_has_permission(
+                candidate_id,
+                RBAC_MANAGE_PERMISSION,
+            ):
+                return
+        raise BizException(
+            code=CommonErrorCode.VALIDATION_ERROR,
+            message="至少需要保留一个权限管理员",
+        )
+
+    async def _get_member_role(self) -> Role:
+        role = await self.db.scalar(
+            select(Role).where(
+                Role.code == MEMBER_ROLE_CODE,
+                Role.deleted_at.is_(None),
+            )
+        )
+        if role is None:
             raise BizException(
                 code=CommonErrorCode.VALIDATION_ERROR,
-                message="至少需要保留一个启用的管理员",
+                message="默认成员角色不存在",
             )
+        return role
 
-    async def _count_active_admins(
-        self,
-        *,
-        exclude_user_id: int | None = None,
-    ) -> int:
-        filters = [
-            User.deleted_at.is_(None),
-            User.is_active.is_(True),
-            User.role == ADMIN_ROLE,
-        ]
-        if exclude_user_id is not None:
-            filters.append(User.id != exclude_user_id)
-        statement = select(func.count()).select_from(User).where(*filters)
-        return int((await self.db.execute(statement)).scalar_one())
-
-    def _build_summary_response(self, user: User) -> UserSummaryResp:
+    async def _build_summary_response(self, user: User) -> UserSummaryResp:
+        roles = await RbacService(self.db).get_user_role_refs(user.id)
         return UserSummaryResp(
             id=user.id,
             username=user.username,
             email=user.email,
-            role=user.role,
-            roleLabel=ROLE_LABELS.get(user.role, user.role),
+            roles=roles,
             isActive=user.is_active,
             lastLoginAt=user.last_login_at,
             createdAt=user.created_at,
             updatedAt=user.updated_at,
         )
 
-    def _build_detail_response(self, user: User) -> UserDetailResp:
+    async def _build_detail_response(self, user: User) -> UserDetailResp:
         return UserDetailResp(
-            **self._build_summary_response(user).model_dump(by_alias=True)
+            **(await self._build_summary_response(user)).model_dump(
+                by_alias=True
+            )
         )

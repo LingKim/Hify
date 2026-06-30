@@ -16,6 +16,9 @@ function buildBreadcrumb(pathname: string): { title: string }[] {
   if (pathname === "/users") {
     return [{ title: "运营后台" }, { title: "用户管理" }];
   }
+  if (pathname === "/rbac") {
+    return [{ title: "运营后台" }, { title: "权限管理" }];
+  }
   if (pathname === "/conversations") {
     return [{ title: "运营后台" }, { title: "会话日志" }];
   }

@@ -2,27 +2,35 @@
 
 ## 1. 设计目标
 
-用户管理接口服务于后台单页管理，采用聚合式 CRUD，而不是拆成多个细碎子资源。
+用户管理接口服务于后台账号管理页面，采用聚合式 CRUD。
 
 接口目标：
 
 - 支持用户列表、详情、创建、编辑、软删除
 - 支持启用、禁用、重置密码
 - 不暴露 `password_hash` 或明文密码
+- 不再接收或返回 `role` / `roleLabel`
+- 用户角色展示读取 RBAC 绑定，角色分配由 RBAC 接口负责
 - 保持和现有 Hify 接口一致的响应信封、分页结构和字段命名
-- 为后续 RBAC 扩展保留兼容字段
 
 ## 2. 基础约定
 
 ### 2.1 路由前缀
 
-用户管理路由前缀：
-
 ```text
 /api/v1/users
 ```
 
-### 2.2 响应信封
+### 2.2 权限要求
+
+| 操作 | 权限 |
+|---|---|
+| 列表、详情 | `user.read` |
+| 创建、更新、启用、禁用、重置密码、删除 | `user.manage` |
+
+禁用或删除最后一个拥有 `rbac.manage` 权限的启用用户时，接口必须拒绝。
+
+### 2.3 响应信封
 
 除 `DELETE` 外，所有接口统一返回：
 
@@ -46,16 +54,28 @@
 }
 ```
 
-### 2.3 字段命名
+### 2.4 字段命名
 
 - 后端内部使用 snake_case
 - HTTP JSON 使用 camelCase
 - 时间字段使用 ISO 8601 字符串
-- 用户 ID 使用数字 ID
+- 用户 ID、角色 ID 使用数字 ID
 
 ## 3. 数据结构
 
-### 3.1 用户摘要 `UserSummary`
+### 3.1 角色引用 `RoleRef`
+
+```json
+{
+  "id": 1,
+  "code": "member",
+  "name": "普通用户",
+  "status": "enabled",
+  "isSystem": true
+}
+```
+
+### 3.2 用户摘要 `UserSummary`
 
 用于列表页。
 
@@ -64,8 +84,15 @@
   "id": 1,
   "username": "admin",
   "email": "admin@hify.ai",
-  "role": "admin",
-  "roleLabel": "管理员",
+  "roles": [
+    {
+      "id": 1,
+      "code": "admin",
+      "name": "管理员",
+      "status": "enabled",
+      "isSystem": true
+    }
+  ],
   "isActive": true,
   "lastLoginAt": "2026-05-12T05:00:00Z",
   "createdAt": "2026-05-02T14:15:00Z",
@@ -73,17 +100,24 @@
 }
 ```
 
-### 3.2 用户详情 `UserDetail`
+### 3.3 用户详情 `UserDetail`
 
-用于详情和编辑回填。
+用户详情和编辑回填使用同一结构。
 
 ```json
 {
   "id": 1,
   "username": "admin",
   "email": "admin@hify.ai",
-  "role": "admin",
-  "roleLabel": "管理员",
+  "roles": [
+    {
+      "id": 1,
+      "code": "admin",
+      "name": "管理员",
+      "status": "enabled",
+      "isSystem": true
+    }
+  ],
   "isActive": true,
   "lastLoginAt": "2026-05-12T05:00:00Z",
   "createdAt": "2026-05-02T14:15:00Z",
@@ -93,28 +127,9 @@
 
 说明：
 
-- `passwordHash` 永远不返回
-- 创建时提交的明文密码只用于生成哈希，接口响应不回显
-- `roleLabel` 由后端或前端映射均可，一期建议后端返回，便于列表展示稳定
-
-### 3.3 角色选项
-
-一期角色：
-
-```json
-[
-  {
-    "value": "admin",
-    "label": "管理员"
-  },
-  {
-    "value": "member",
-    "label": "普通用户"
-  }
-]
-```
-
-后续 RBAC 扩展时，可以新增角色选项接口，但一期前端可以内置这两个选项。
+- `passwordHash` 永远不返回。
+- 创建时提交的明文密码只用于生成哈希，接口响应不回显。
+- `roles` 只用于展示当前绑定角色；修改角色走 RBAC 用户授权接口。
 
 ## 4. 接口列表
 
@@ -128,7 +143,7 @@ GET /api/v1/users
 
 - 返回分页后的用户摘要列表
 - 默认只返回未软删除用户
-- 支持关键词、角色和启用状态筛选
+- 支持关键词、角色 ID 和启用状态筛选
 
 查询参数：
 
@@ -137,7 +152,7 @@ GET /api/v1/users
 | `page` | `int` | 否 | 默认 `1` |
 | `pageSize` | `int` | 否 | 默认 `20`，最大 `100` |
 | `keyword` | `string` | 否 | 模糊匹配用户名或邮箱 |
-| `role` | `string` | 否 | `admin` 或 `member` |
+| `roleId` | `int` | 否 | 按 RBAC 角色 ID 筛选 |
 | `isActive` | `boolean` | 否 | 是否启用 |
 
 响应示例：
@@ -152,8 +167,15 @@ GET /api/v1/users
         "id": 1,
         "username": "admin",
         "email": "admin@hify.ai",
-        "role": "admin",
-        "roleLabel": "管理员",
+        "roles": [
+          {
+            "id": 1,
+            "code": "admin",
+            "name": "管理员",
+            "status": "enabled",
+            "isSystem": true
+          }
+        ],
         "isActive": true,
         "lastLoginAt": null,
         "createdAt": "2026-05-02T14:15:00Z",
@@ -180,25 +202,7 @@ GET /api/v1/users/{user_id}
 |---|---|---|
 | `user_id` | `int` | 用户 ID |
 
-响应：
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@hify.ai",
-    "role": "admin",
-    "roleLabel": "管理员",
-    "isActive": true,
-    "lastLoginAt": null,
-    "createdAt": "2026-05-02T14:15:00Z",
-    "updatedAt": "2026-05-02T14:15:00Z"
-  }
-}
-```
+响应 `data` 为 `UserDetail`。
 
 ### 4.3 创建用户
 
@@ -211,6 +215,7 @@ POST /api/v1/users
 - 创建一个未删除用户
 - 用户名和邮箱必须在未删除用户中唯一
 - 初始密码必填，只用于生成 `password_hash`
+- 系统默认绑定内置 `member` 角色
 
 请求体：
 
@@ -219,7 +224,6 @@ POST /api/v1/users
   "username": "lisa",
   "email": "lisa@hify.ai",
   "password": "ChangeMe123!",
-  "role": "member",
   "isActive": true
 }
 ```
@@ -231,7 +235,6 @@ POST /api/v1/users
 | `username` | `string` | 是 | 1-64 字符，不能为空 |
 | `email` | `string` | 是 | 合法邮箱，最长 255 字符 |
 | `password` | `string` | 是 | 8-128 字符 |
-| `role` | `string` | 是 | `admin` 或 `member` |
 | `isActive` | `boolean` | 否 | 默认 `true` |
 
 响应状态：
@@ -251,6 +254,7 @@ PUT /api/v1/users/{user_id}
 
 - 更新用户基础资料
 - 不通过该接口修改密码
+- 不通过该接口修改角色
 - 不通过该接口软删除用户
 
 请求体：
@@ -259,7 +263,6 @@ PUT /api/v1/users/{user_id}
 {
   "username": "lisa",
   "email": "lisa@hify.ai",
-  "role": "member",
   "isActive": true
 }
 ```
@@ -270,13 +273,12 @@ PUT /api/v1/users/{user_id}
 |---|---|---|---|
 | `username` | `string` | 是 | 1-64 字符，不能为空 |
 | `email` | `string` | 是 | 合法邮箱，最长 255 字符 |
-| `role` | `string` | 是 | `admin` 或 `member` |
 | `isActive` | `boolean` | 是 | 是否启用 |
 
 业务规则：
 
-- 若把管理员改为普通用户会导致系统没有启用管理员，应拒绝。
-- 若把最后一个启用管理员改为禁用，应拒绝。
+- 禁止用户禁用当前登录账号自身。
+- 若禁用目标用户会导致系统没有启用的 `rbac.manage` 权限持有者，应拒绝。
 
 响应 `data` 为 `UserDetail`。
 
@@ -317,12 +319,12 @@ POST /api/v1/users/{user_id}/disable
 
 字段说明：
 
-- `reason` 当前不落库，仅用于后续审计扩展；一期可选。
+- `reason` 当前不落库，仅用于后续审计扩展；当前可选。
 
 业务规则：
 
-- 禁止禁用最后一个启用管理员。
-- 建议禁止管理员禁用当前登录用户自身。
+- 禁止禁用当前登录用户自身。
+- 禁止禁用最后一个启用且拥有 `rbac.manage` 权限的用户。
 
 响应 `data` 为 `UserDetail`。
 
@@ -380,8 +382,8 @@ DELETE /api/v1/users/{user_id}
 
 业务规则：
 
-- 禁止删除最后一个启用管理员。
-- 建议禁止管理员删除当前登录用户自身。
+- 禁止删除当前登录用户自身。
+- 禁止删除最后一个启用且拥有 `rbac.manage` 权限的用户。
 
 响应：
 
@@ -390,28 +392,21 @@ DELETE /api/v1/users/{user_id}
 
 ## 5. 错误语义
 
-一期可复用通用错误码，并在消息中提供用户可理解的原因：
-
 | 场景 | HTTP | code | message 示例 |
 |---|---|---|---|
 | 用户不存在 | 404 | `1002` | `用户不存在` |
 | 用户名已存在 | 409 | `1003` | `用户名已存在` |
 | 邮箱已存在 | 409 | `1003` | `邮箱已存在` |
 | 参数校验失败 | 422 | `1001` | `参数校验失败` |
-| 角色不合法 | 422 | `1001` | `角色不合法` |
-| 禁用最后一个管理员 | 400 | `1001` | `至少需要保留一个启用的管理员` |
-| 删除最后一个管理员 | 400 | `1001` | `至少需要保留一个启用的管理员` |
-| 当前用户权限不足 | 403 | `1006` | `权限不足` |
+| 权限不足 | 403 | `1006` | `权限不足` |
+| 禁用当前登录用户 | 400 | `1001` | `不能禁用当前登录用户` |
+| 删除当前登录用户 | 400 | `1001` | `不能删除当前登录用户` |
+| 移除最后一个权限管理员 | 400 | `1001` | `至少需要保留一个权限管理员` |
 | 禁用用户访问受保护接口 | 403 | `2005` | `账户已禁用` |
-
-说明：
-
-- `2005` 已在后端规范中预留为“账户已禁用”，实现时可新增认证模块错误枚举。
-- 如果本期还没有完整权限中间件，用户管理路由仍应先要求登录，并优先限制为 `admin` 角色。
 
 ## 6. 排序、搜索与过滤
 
-一期列表默认排序：
+默认排序：
 
 1. `createdAt` 倒序
 2. `id` 倒序
@@ -423,7 +418,7 @@ DELETE /api/v1/users/{user_id}
 
 过滤规则：
 
-- `role` 精确匹配
+- `roleId` 通过 `user_role_bindings.role_id` 精确匹配
 - `isActive` 精确匹配
 - 默认排除 `deletedAt is not null` 的软删除用户
 
@@ -440,16 +435,16 @@ DELETE /api/v1/users/{user_id}
 - 重置密码：`POST /api/v1/users/{user_id}/reset-password`
 - 删除：`DELETE /api/v1/users/{user_id}`
 
-前端本期可以内置角色选项：
+角色选项不再由用户管理页面内置，统一读取 RBAC：
 
-- `admin`：管理员
-- `member`：普通用户
-
-后续 RBAC 上线后，再增加角色选项接口并替换内置选项来源。
+- `GET /api/v1/rbac/roles/options`
+- `GET /api/v1/rbac/users/{user_id}/roles`
+- `PUT /api/v1/rbac/users/{user_id}/roles`
 
 ## 8. 兼容性说明
 
-- `role` 字段一期保留为单角色字符串。
-- 后续 RBAC 可新增 `roles` 数组字段，同时保留 `role` 作为兼容字段。
+- `users.role` 已删除，不保留双轨兼容期。
+- 用户管理接口不再返回 `role`、`roleLabel`。
+- 创建和更新用户接口不再接收 `role`。
 - 用户详情和列表不返回 `deletedAt`，因为默认列表不展示已删除用户；若未来需要回收站能力，再新增包含删除状态的查询参数和字段。
 - 密码相关接口永远不返回明文密码或哈希。

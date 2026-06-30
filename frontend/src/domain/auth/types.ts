@@ -1,11 +1,17 @@
-export type AuthUserRole = "admin" | "member";
+export interface AuthRoleRef {
+  id: number;
+  code: string;
+  name: string;
+  status: string;
+  isSystem: boolean;
+}
 
 export interface CurrentUser {
   id: number;
   username: string;
   email: string;
-  role: AuthUserRole;
-  roleLabel: string;
+  roles: AuthRoleRef[];
+  permissions: string[];
 }
 
 export interface LoginValues {

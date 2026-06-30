@@ -17,11 +17,7 @@ from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.config import get_settings
 from app.core.database import utc_now
 from app.core.exceptions import BizException
-
-ROLE_LABELS = {
-    "admin": "管理员",
-    "member": "普通用户",
-}
+from app.rbac.service import RbacService
 
 
 class AuthService:
@@ -74,7 +70,7 @@ class AuthService:
             AccessTokenPayload(
                 sub=str(user.id),
                 username=user.username,
-                role=user.role,
+                role="",
             ),
             expires_in_seconds=expires_in,
         )
@@ -86,15 +82,16 @@ class AuthService:
             accessToken=access_token,
             tokenType="Bearer",
             expiresIn=expires_in,
-            user=self.build_current_user(user),
+            user=await self.build_current_user(user),
         )
 
-    def build_current_user(self, user: User) -> CurrentUserResp:
+    async def build_current_user(self, user: User) -> CurrentUserResp:
         """Build the current user payload shared by login and /me."""
+        rbac_service = RbacService(self.db)
         return CurrentUserResp(
             id=user.id,
             username=user.username,
             email=user.email,
-            role=user.role,
-            roleLabel=ROLE_LABELS.get(user.role, user.role),
+            roles=await rbac_service.get_user_role_refs(user.id),
+            permissions=await rbac_service.get_user_permission_codes(user.id),
         )

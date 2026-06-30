@@ -9,13 +9,21 @@ import {
   MenuUnfoldOutlined,
   ProfileOutlined,
   RobotOutlined,
+  SafetyCertificateOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { currentUserQueryOptions } from "@/domain/auth/queries";
+import {
+  hasAnyPermission,
+  routePermissionMap,
+} from "@/domain/auth/permissions";
 import { PreferencesDrawer } from "@/app/preferences/PreferencesDrawer";
+import { getAccessToken } from "@/shared/auth/token";
 import { useAppStore } from "@/shared/stores/app";
 import { useTagsStore } from "@/shared/stores/tags";
 import { HeaderBar } from "./HeaderBar";
@@ -65,6 +73,11 @@ const navigationItems: ItemType[] = [
     label: "用户管理",
   },
   {
+    key: "/rbac",
+    icon: <SafetyCertificateOutlined />,
+    label: "权限管理",
+  },
+  {
     key: "/playground/api-preview",
     icon: <ApiOutlined />,
     label: "联调预览",
@@ -76,6 +89,31 @@ const navigationItems: ItemType[] = [
   },
 ];
 
+function filterNavigationItems(
+  items: ItemType[],
+  permissions: string[] | undefined,
+): ItemType[] {
+  return items.filter((item) => {
+    if (item == null || !("key" in item)) {
+      return item != null;
+    }
+    const routeKey = String(item.key);
+    const requiredPermissions = routePermissionMap[routeKey] ?? [];
+    return hasAnyPermission(
+      permissions == null
+        ? undefined
+        : {
+            id: 0,
+            username: "",
+            email: "",
+            roles: [],
+            permissions,
+          },
+      requiredPermissions,
+    );
+  });
+}
+
 const routeTitleMap: Record<string, string> = {
   "/": "首页",
   "/agents": "Agent 配置",
@@ -85,6 +123,7 @@ const routeTitleMap: Record<string, string> = {
   "/conversations": "会话日志",
   "/providers": "模型提供商管理",
   "/users": "用户管理",
+  "/rbac": "权限管理",
   "/playground/api-preview": "联调预览",
   "/playground/common-components": "公共组件演示",
 };
@@ -95,6 +134,13 @@ export function AppLayout(): JSX.Element {
   const siderCollapsed = useAppStore((s) => s.siderCollapsed);
   const toggleSiderCollapsed = useAppStore((s) => s.toggleSiderCollapsed);
   const addTab = useTagsStore((s) => s.addTab);
+  const currentUserQuery = useQuery(
+    currentUserQueryOptions(getAccessToken() !== null),
+  );
+  const visibleNavigationItems = filterNavigationItems(
+    navigationItems,
+    currentUserQuery.data?.permissions,
+  );
 
   useEffect(() => {
     const title = routeTitleMap[location.pathname] ?? "未知页面";
@@ -119,7 +165,7 @@ export function AppLayout(): JSX.Element {
             className="app-nav"
             mode="inline"
             selectedKeys={[location.pathname]}
-            items={navigationItems}
+            items={visibleNavigationItems}
             onClick={({ key }) => {
               navigate(key);
             }}

@@ -16,6 +16,7 @@ OPENAPI_TAGS = [
     {"name": "knowledge", "description": "知识库与检索接口"},
     {"name": "conversation", "description": "对话与编排接口"},
     {"name": "user", "description": "用户管理接口"},
+    {"name": "rbac", "description": "角色与权限管理接口"},
 ]
 
 

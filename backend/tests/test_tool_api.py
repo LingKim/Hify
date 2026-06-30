@@ -101,7 +101,6 @@ async def tool_api_harness() -> ToolApiHarness:
             username="member",
             email="member@hify.ai",
             password_hash=hash_password("Member123!"),
-            role="member",
             is_active=True,
         )
         session.add(user)

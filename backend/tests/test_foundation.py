@@ -11,8 +11,10 @@ from app.core.auth import (
 )
 from app.core.cache import CacheKeyBuilder, JsonCache
 from app.core.config import get_settings
+from app.core.database import get_db_session
 from app.core.http import ExternalHttpClient
 from app.main import app
+from app.rbac.service import RbacService
 
 
 class FakeRedis:
@@ -83,7 +85,9 @@ def test_auth_me_requires_bearer_token() -> None:
     assert response.json()["message"] == "未登录或登录已过期"
 
 
-def test_auth_me_returns_current_user_from_token() -> None:
+def test_auth_me_returns_current_user_from_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client = TestClient(app)
     token = create_access_token(
         AccessTokenPayload(
@@ -99,11 +103,46 @@ def test_auth_me_returns_current_user_from_token() -> None:
             username="demo",
             email="demo@hify.ai",
             password_hash="hashed",
-            role="admin",
             is_active=True,
         )
 
+    async def override_get_db_session():  # type: ignore[no-untyped-def]
+        yield None
+
+    async def fake_get_user_role_refs(
+        self: RbacService,
+        user_id: int,
+    ) -> list[dict[str, object]]:
+        del self, user_id
+        return [
+            {
+                "id": 1,
+                "code": "admin",
+                "name": "管理员",
+                "status": "enabled",
+                "isSystem": True,
+            }
+        ]
+
+    async def fake_get_user_permission_codes(
+        self: RbacService,
+        user_id: int,
+    ) -> list[str]:
+        del self, user_id
+        return ["rbac.manage"]
+
+    monkeypatch.setattr(
+        RbacService,
+        "get_user_role_refs",
+        fake_get_user_role_refs,
+    )
+    monkeypatch.setattr(
+        RbacService,
+        "get_user_permission_codes",
+        fake_get_user_permission_codes,
+    )
     app.dependency_overrides[get_current_active_user] = override_current_user
+    app.dependency_overrides[get_db_session] = override_get_db_session
     try:
         response = client.get(
             "/api/v1/auth/me",
@@ -117,8 +156,16 @@ def test_auth_me_returns_current_user_from_token() -> None:
         "id": 1,
         "username": "demo",
         "email": "demo@hify.ai",
-        "role": "admin",
-        "roleLabel": "管理员",
+        "roles": [
+            {
+                "id": 1,
+                "code": "admin",
+                "name": "管理员",
+                "status": "enabled",
+                "isSystem": True,
+            }
+        ],
+        "permissions": ["rbac.manage"],
     }
 
 

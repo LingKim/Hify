@@ -21,6 +21,7 @@
 - `auth/`：登录、JWT 鉴权与前端登录态闭环
 - `provider-management/`：LLM 模型提供商管理模块
 - `user-management/`：内部账号管理模块
+- `rbac/`：角色、权限、用户授权和权限守卫模块
 - `conversation/`：会话与对话运行模块
 - `agent-configuration/`：Agent 配置模块
 - `knowledge/`：知识库、文档处理、检索测试与 RAG 注入模块

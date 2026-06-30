@@ -21,6 +21,12 @@ from app.auth.password import hash_password
 from app.core.auth import AccessTokenPayload, create_access_token
 from app.core.database import Base, get_db_session
 from app.main import app
+from app.rbac.model import (
+    Permission,
+    Role,
+    RolePermissionBinding,
+    UserRoleBinding,
+)
 
 
 def _database_url() -> str:
@@ -64,7 +70,30 @@ class UserApiHarness:
     client: httpx.AsyncClient
     session_factory: async_sessionmaker[AsyncSession]
     admin_id: int
+    admin_role_id: int
+    member_role_id: int
     headers: dict[str, str]
+
+
+async def _seed_permission(
+    session: AsyncSession,
+    *,
+    code: str,
+    name: str,
+    module: str,
+    action: str,
+) -> Permission:
+    permission = Permission(
+        code=code,
+        name=name,
+        module=module,
+        action=action,
+        description=name,
+        is_system=True,
+    )
+    session.add(permission)
+    await session.flush()
+    return permission
 
 
 @pytest_asyncio.fixture
@@ -94,12 +123,72 @@ async def user_api_harness() -> UserApiHarness:
             username="admin",
             email="admin@hify.ai",
             password_hash=hash_password("Admin123!"),
-            role="admin",
             is_active=True,
         )
         session.add(admin)
+        await session.flush()
+
+        admin_role = Role(
+            code="admin",
+            name="管理员",
+            description="系统管理员",
+            status="enabled",
+            is_system=True,
+        )
+        member_role = Role(
+            code="member",
+            name="普通用户",
+            description="普通成员",
+            status="enabled",
+            is_system=True,
+        )
+        session.add_all([admin_role, member_role])
+        await session.flush()
+
+        permissions = [
+            await _seed_permission(
+                session,
+                code="rbac.manage",
+                name="管理角色权限",
+                module="rbac",
+                action="manage",
+            ),
+            await _seed_permission(
+                session,
+                code="user.read",
+                name="查看用户",
+                module="user",
+                action="read",
+            ),
+            await _seed_permission(
+                session,
+                code="user.manage",
+                name="管理用户",
+                module="user",
+                action="manage",
+            ),
+            await _seed_permission(
+                session,
+                code="conversation.use",
+                name="使用 Web 对话",
+                module="conversation",
+                action="use",
+            ),
+        ]
+        session.add(UserRoleBinding(user_id=admin.id, role_id=admin_role.id))
+        session.add_all(
+            [
+                RolePermissionBinding(
+                    role_id=admin_role.id,
+                    permission_id=permission.id,
+                )
+                for permission in permissions
+            ]
+        )
         await session.commit()
         admin_id = admin.id
+        admin_role_id = admin_role.id
+        member_role_id = member_role.id
 
     token = create_access_token(
         AccessTokenPayload(
@@ -129,6 +218,8 @@ async def user_api_harness() -> UserApiHarness:
             client=client,
             session_factory=session_factory,
             admin_id=admin_id,
+            admin_role_id=admin_role_id,
+            member_role_id=member_role_id,
             headers=headers,
         )
 
@@ -161,18 +252,21 @@ async def test_create_list_update_disable_enable_reset_and_delete_user(
             "username": "lisa",
             "email": "lisa@hify.ai",
             "password": "ChangeMe123!",
-            "role": "member",
             "isActive": True,
         },
     )
 
     assert created["username"] == "lisa"
-    assert created["roleLabel"] == "普通用户"
+    assert created["roles"][0]["code"] == "member"
     assert "passwordHash" not in created
 
     list_response = await user_api_harness.client.get(
         "/api/v1/users",
-        params={"keyword": "lis", "role": "member", "isActive": True},
+        params={
+            "keyword": "lis",
+            "roleId": user_api_harness.member_role_id,
+            "isActive": True,
+        },
         headers=user_api_harness.headers,
     )
     assert list_response.status_code == 200
@@ -183,7 +277,6 @@ async def test_create_list_update_disable_enable_reset_and_delete_user(
         json={
             "username": "lisa.ops",
             "email": "lisa.ops@hify.ai",
-            "role": "member",
             "isActive": True,
         },
         headers=user_api_harness.headers,
@@ -239,7 +332,6 @@ async def test_user_uniqueness_only_checks_active_records(
             "username": "reuse",
             "email": "reuse@hify.ai",
             "password": "ChangeMe123!",
-            "role": "member",
             "isActive": True,
         },
     )
@@ -249,7 +341,6 @@ async def test_user_uniqueness_only_checks_active_records(
             "username": "reuse",
             "email": "reuse2@hify.ai",
             "password": "ChangeMe123!",
-            "role": "member",
         },
         headers=user_api_harness.headers,
     )
@@ -266,7 +357,6 @@ async def test_user_uniqueness_only_checks_active_records(
             "username": "reuse",
             "email": "reuse@hify.ai",
             "password": "ChangeMe123!",
-            "role": "member",
             "isActive": True,
         },
     )
@@ -293,10 +383,16 @@ async def test_cannot_disable_or_delete_last_active_admin(
             username="admin2",
             email="admin2@hify.ai",
             password_hash=hash_password("Admin123!"),
-            role="admin",
             is_active=True,
         )
         session.add(admin_2)
+        await session.flush()
+        session.add(
+            UserRoleBinding(
+                user_id=admin_2.id,
+                role_id=user_api_harness.admin_role_id,
+            )
+        )
         await session.commit()
 
     update_response = await user_api_harness.client.put(
@@ -304,13 +400,12 @@ async def test_cannot_disable_or_delete_last_active_admin(
         json={
             "username": "admin",
             "email": "admin@hify.ai",
-            "role": "member",
             "isActive": True,
         },
         headers=user_api_harness.headers,
     )
     assert update_response.status_code == 200
-    assert update_response.json()["data"]["role"] == "member"
+    assert update_response.json()["data"]["roles"][0]["code"] == "admin"
 
 
 @pytest.mark.asyncio
@@ -322,7 +417,6 @@ async def test_disabled_account_cannot_access_auth_me(
             username="disabled",
             email="disabled@hify.ai",
             password_hash=hash_password("Admin123!"),
-            role="admin",
             is_active=False,
         )
         session.add(disabled)
@@ -358,12 +452,23 @@ async def test_login_returns_token_and_current_user_profile(
     assert isinstance(payload["accessToken"], str)
     assert payload["accessToken"] != ""
     assert payload["expiresIn"] > 0
-    assert payload["user"] == {
-        "id": user_api_harness.admin_id,
-        "username": "admin",
-        "email": "admin@hify.ai",
-        "role": "admin",
-        "roleLabel": "管理员",
+    assert payload["user"]["id"] == user_api_harness.admin_id
+    assert payload["user"]["username"] == "admin"
+    assert payload["user"]["email"] == "admin@hify.ai"
+    assert payload["user"]["roles"] == [
+        {
+            "id": user_api_harness.admin_role_id,
+            "code": "admin",
+            "name": "管理员",
+            "status": "enabled",
+            "isSystem": True,
+        }
+    ]
+    assert set(payload["user"]["permissions"]) == {
+        "rbac.manage",
+        "user.read",
+        "user.manage",
+        "conversation.use",
     }
     assert "passwordHash" not in payload["user"]
 
@@ -398,7 +503,6 @@ async def test_login_rejects_invalid_or_disabled_accounts(
             username="disabled-login",
             email="disabled-login@hify.ai",
             password_hash=hash_password("Admin123!"),
-            role="member",
             is_active=False,
         )
         session.add(disabled)
@@ -413,7 +517,7 @@ async def test_login_rejects_invalid_or_disabled_accounts(
 
 
 @pytest.mark.asyncio
-async def test_member_can_access_user_management_after_login(
+async def test_member_without_user_permission_is_forbidden(
     user_api_harness: UserApiHarness,
 ) -> None:
     async with user_api_harness.session_factory() as session:
@@ -421,10 +525,16 @@ async def test_member_can_access_user_management_after_login(
             username="member",
             email="member@hify.ai",
             password_hash=hash_password("Member123!"),
-            role="member",
             is_active=True,
         )
         session.add(member)
+        await session.flush()
+        session.add(
+            UserRoleBinding(
+                user_id=member.id,
+                role_id=user_api_harness.member_role_id,
+            )
+        )
         await session.commit()
 
     login_response = await user_api_harness.client.post(
@@ -436,7 +546,7 @@ async def test_member_can_access_user_management_after_login(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert list_response.status_code == 200
+    assert list_response.status_code == 403
 
 
 @pytest.mark.asyncio

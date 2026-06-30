@@ -46,7 +46,6 @@ def test_module_preview_endpoints_return_result_payload(
             username="member",
             email="member@hify.ai",
             password_hash="hashed",
-            role="member",
             is_active=True,
         )
 

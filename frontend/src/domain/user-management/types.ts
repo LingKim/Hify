@@ -1,10 +1,16 @@
 import type { PageResult } from "@/shared/types/list";
 
-export type UserRole = "admin" | "member";
+export interface UserRoleRef {
+  id: number;
+  code: string;
+  name: string;
+  status: string;
+  isSystem: boolean;
+}
 
 export interface UserListQuery {
   keyword?: string;
-  role?: UserRole;
+  roleId?: number;
   isActive?: boolean;
 }
 
@@ -12,8 +18,7 @@ export interface UserSummaryRecord {
   id: number;
   username: string;
   email: string;
-  role: UserRole;
-  roleLabel: string;
+  roles: UserRoleRef[];
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -28,7 +33,6 @@ export interface UserFormValues {
   username: string;
   email: string;
   password?: string;
-  role: UserRole;
   isActive: boolean;
 }
 

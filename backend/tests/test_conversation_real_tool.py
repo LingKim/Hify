@@ -25,7 +25,6 @@ from app.conversation.model import (
 )
 from app.conversation.runtime import (
     ConversationRuntime,
-    PreparedConversationRun,
     RuntimeStreamEvent,
 )
 from app.conversation.service import ConversationService
@@ -35,7 +34,6 @@ from app.llm.model import ProviderAuthSecret, ProviderInstance, ProviderModel
 from app.llm.provider import ProviderSecretCodec, ProviderSecretPayload
 from app.tool.model import Tool, ToolAuthSecret, ToolExecutionLog, ToolParameter
 from app.tool.service import ToolService
-
 from tests._p4_echo import ToolEchoServer, start_echo_server
 
 
@@ -113,7 +111,6 @@ async def conversation_tool_harness() -> ConversationToolHarness:
             username="conv_real",
             email="conv_real@hify.ai",
             password_hash=hash_password("ConvReal123!"),
-            role="member",
             is_active=True,
         )
         session.add(user)

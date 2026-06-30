@@ -23,11 +23,6 @@ class User(TimestampSoftDeleteMixin, Base):
             "password_hash <> ''",
             name="ck_users_password_hash_non_empty",
         ),
-        CheckConstraint("role <> ''", name="ck_users_role_non_empty"),
-        CheckConstraint(
-            "role IN ('admin', 'member')",
-            name="ck_users_role_supported",
-        ),
         CheckConstraint("version >= 1", name="ck_users_version_positive"),
         Index(
             "ux_users_username_active",
@@ -54,12 +49,6 @@ class User(TimestampSoftDeleteMixin, Base):
     password_hash: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
-    )
-    role: Mapped[str] = mapped_column(
-        String(32),
-        nullable=False,
-        default="member",
-        server_default="member",
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean,

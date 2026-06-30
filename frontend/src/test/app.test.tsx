@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AppProviders } from "@/app/providers/AppProviders";
 import { AppRouter } from "@/app/router/AppRouter";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/shared/auth/token";
+import { queryClient } from "@/shared/query/client";
 import { useAppStore } from "@/shared/stores/app";
 
 function renderApp(initialPath: string): void {
@@ -25,9 +26,31 @@ function loginForTest(): void {
   window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, "test-token");
 }
 
+const ADMIN_PERMISSIONS = [
+  "provider.read",
+  "provider.manage",
+  "agent.read",
+  "agent.manage",
+  "tool.read",
+  "tool.manage",
+  "knowledge.read",
+  "knowledge.manage",
+  "conversation.use",
+  "conversation.read",
+  "conversation.manage",
+  "user.read",
+  "user.manage",
+  "rbac.read",
+  "rbac.manage",
+];
+
 describe("AppRouter", () => {
+  let currentPermissions: string[];
+
   beforeEach(() => {
     window.localStorage.clear();
+    queryClient.clear();
+    currentPermissions = ADMIN_PERMISSIONS;
     useAppStore.setState({
       siderCollapsed: false,
       isPreferencesDrawerOpen: false,
@@ -48,8 +71,16 @@ describe("AppRouter", () => {
               id: 1,
               username: "member",
               email: "member@hify.ai",
-              role: "member",
-              roleLabel: "普通用户",
+              roles: [
+                {
+                  id: 3,
+                  code: "member",
+                  name: "普通用户",
+                  status: "enabled",
+                  isSystem: true,
+                },
+              ],
+              permissions: currentPermissions,
             },
           }),
           {
@@ -72,8 +103,16 @@ describe("AppRouter", () => {
                 id: 1,
                 username: "member",
                 email: "member@hify.ai",
-                role: "member",
-                roleLabel: "普通用户",
+                roles: [
+                  {
+                    id: 3,
+                    code: "member",
+                    name: "普通用户",
+                    status: "enabled",
+                    isSystem: true,
+                  },
+                ],
+                permissions: currentPermissions,
               },
             },
           }),
@@ -144,6 +183,54 @@ describe("AppRouter", () => {
         );
       }
 
+      if (requestUrl.includes("/api/v1/rbac/permissions")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            message: "success",
+            data: [],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (requestUrl.includes("/api/v1/rbac/roles/options")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            message: "success",
+            data: [],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (requestUrl.includes("/api/v1/rbac/roles")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            message: "success",
+            data: {
+              list: [],
+              total: 0,
+              page: 1,
+              pageSize: 10,
+              totalPages: 0,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       return new Response(
         JSON.stringify({
           code: 200,
@@ -160,6 +247,7 @@ describe("AppRouter", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    queryClient.clear();
     window.localStorage.clear();
   });
 
@@ -236,6 +324,27 @@ describe("AppRouter", () => {
     expect(
       await screen.findByRole("heading", { name: "用户管理" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders the rbac page on the rbac route", async () => {
+    loginForTest();
+    renderApp("/rbac");
+
+    expect(
+      await screen.findByRole("heading", { name: "权限管理" }),
+    ).toBeInTheDocument();
+  });
+
+  it("blocks a route when the current user lacks permissions", async () => {
+    currentPermissions = ["conversation.use"];
+    loginForTest();
+    renderApp("/rbac");
+
+    expect(await screen.findByText("暂无访问权限")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "权限管理" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("维护角色、权限点和用户授权关系。")).not.toBeInTheDocument();
   });
 
   it("renders the common components page on the playground route", async () => {

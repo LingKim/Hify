@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.rbac.schema import RoleRefResp
+
 
 class LoginPreviewResp(BaseModel):
     """Response schema for the auth preview endpoint."""
@@ -26,8 +28,8 @@ class CurrentUserResp(BaseModel):
     id: int
     username: str
     email: str
-    role: str
-    role_label: str = Field(alias="roleLabel")
+    roles: list[RoleRefResp]
+    permissions: list[str]
 
 
 class LoginResp(BaseModel):

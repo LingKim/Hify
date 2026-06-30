@@ -3,10 +3,10 @@
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.deps import get_current_active_user
 from app.auth.model import User
 from app.core.database import get_db_session
 from app.core.responses import PageResult, Result
+from app.rbac.deps import require_permission
 from app.user.schema import (
     UserCreateReq,
     UserDetailResp,
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/v1/users", tags=["user"])
 async def list_users(
     params: UserListParams = Depends(),
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.read")),
 ) -> Result[PageResult[UserSummaryResp]]:
     """Return paginated user records for the admin page."""
     del current_user
@@ -38,7 +38,7 @@ async def list_users(
 async def get_user(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.read")),
 ) -> Result[UserDetailResp]:
     """Return one user detail record."""
     del current_user
@@ -54,7 +54,7 @@ async def get_user(
 async def create_user(
     payload: UserCreateReq,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Result[UserDetailResp]:
     """Create one user account."""
     del current_user
@@ -70,7 +70,7 @@ async def update_user(
     user_id: int,
     payload: UserUpdateReq,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Result[UserDetailResp]:
     """Update one user account."""
     service = UserService(db)
@@ -87,7 +87,7 @@ async def update_user(
 async def enable_user(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Result[UserDetailResp]:
     """Enable one user account."""
     del current_user
@@ -100,7 +100,7 @@ async def disable_user(
     user_id: int,
     payload: UserDisableReq | None = None,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Result[UserDetailResp]:
     """Disable one user account."""
     del payload
@@ -121,7 +121,7 @@ async def reset_password(
     user_id: int,
     payload: UserResetPasswordReq,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Result[UserResetPasswordResp]:
     """Reset one user's password."""
     del current_user
@@ -135,7 +135,7 @@ async def reset_password(
 async def delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_permission("user.manage")),
 ) -> Response:
     """Soft-delete one user account."""
     service = UserService(db)

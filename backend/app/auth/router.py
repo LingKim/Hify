@@ -44,4 +44,4 @@ async def me(
 ) -> Result[CurrentUserResp]:
     """Return the current authenticated user."""
     service = AuthService(db)
-    return Result.success(data=service.build_current_user(current_user))
+    return Result.success(data=await service.build_current_user(current_user))

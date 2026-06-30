@@ -4,14 +4,23 @@ import {
   KeyOutlined,
   PlusOutlined,
   PoweroffOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { App, Button, Input, Select, Space, Tooltip, Typography } from "antd";
 import { useMemo, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { currentUserQueryOptions } from "@/domain/auth/queries";
+import { hasAnyPermission } from "@/domain/auth/permissions";
 import {
-  UserRoleTag,
+  rbacQueryKeys,
+  replaceUserRolesMutationOptions,
+  roleOptionsQueryOptions,
+  userRolesQueryOptions,
+} from "@/domain/rbac/queries";
+import type { UserRoleFormValues } from "@/domain/rbac/types";
+import {
+  UserRoleTags,
   UserStatusTag,
-  userRoleOptions,
   userStatusOptions,
 } from "@/domain/user-management/components";
 import {
@@ -35,6 +44,7 @@ import type {
   UserSummaryRecord,
 } from "@/domain/user-management/types";
 import { getErrorMessage } from "@/shared/api";
+import { getAccessToken } from "@/shared/auth/token";
 import {
   FormDialog,
   ListTable,
@@ -48,7 +58,6 @@ const INITIAL_FORM_VALUES: UserFormValues = {
   username: "",
   email: "",
   password: "",
-  role: "member",
   isActive: true,
 };
 
@@ -73,7 +82,6 @@ function mapDetailToFormValues(
     username: detail.username,
     email: detail.email,
     password: "",
-    role: detail.role,
     isActive: detail.isActive,
   };
 }
@@ -87,6 +95,30 @@ export function UserManagementPage(): JSX.Element {
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
   const [resetPasswordUser, setResetPasswordUser] =
     useState<UserSummaryRecord | null>(null);
+  const [assignRoleUser, setAssignRoleUser] =
+    useState<UserSummaryRecord | null>(null);
+  const currentUserQuery = useQuery(
+    currentUserQueryOptions(getAccessToken() !== null),
+  );
+  const canManageUsers = hasAnyPermission(currentUserQuery.data, [
+    "user.manage",
+  ]);
+  const canManageRbac = hasAnyPermission(currentUserQuery.data, [
+    "rbac.manage",
+  ]);
+  const roleOptionsQuery = useQuery(roleOptionsQueryOptions());
+  const userRolesQuery = useQuery({
+    ...userRolesQueryOptions(assignRoleUser?.id ?? 0),
+    enabled: assignRoleUser != null,
+  });
+  const roleOptions = useMemo(
+    () =>
+      (roleOptionsQuery.data ?? []).map((item) => ({
+        label: item.label,
+        value: item.value,
+      })),
+    [roleOptionsQuery.data],
+  );
 
   const enableMutation = useMutation(
     enableUserMutationOptions(queryClient, {
@@ -121,6 +153,22 @@ export function UserManagementPage(): JSX.Element {
       },
     }),
   );
+  const assignRolesMutation = useMutation(
+    replaceUserRolesMutationOptions(queryClient, assignRoleUser?.id ?? 0, {
+      onSuccess: async () => {
+        message.success("用户角色已更新");
+        setAssignRoleUser(null);
+        await queryClient.invalidateQueries({
+          queryKey: userManagementQueryKeys.all,
+        });
+        await queryClient.invalidateQueries({ queryKey: rbacQueryKeys.all });
+        tableRef.current?.reload();
+      },
+      onError: (error) => {
+        message.error(`分配失败：${getErrorMessage(error)}`);
+      },
+    }),
+  );
   const filterSchema = useMemo<ListFilterField[]>(
     () => [
       {
@@ -130,14 +178,22 @@ export function UserManagementPage(): JSX.Element {
         placeholder: "搜索用户名或邮箱",
       },
       {
-        type: "select",
-        key: "role",
+        type: "custom",
+        key: "roleId",
         label: "角色",
         placeholder: "全部角色",
-        options: userRoleOptions.map((item) => ({
-          label: item.label,
-          value: item.value as string,
-        })),
+        render: ({ value, onChange }) => (
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="全部角色"
+            loading={roleOptionsQuery.isLoading}
+            options={roleOptions}
+            value={value as number | undefined}
+            onChange={(nextValue) => onChange(nextValue)}
+          />
+        ),
       },
       {
         type: "custom",
@@ -155,7 +211,7 @@ export function UserManagementPage(): JSX.Element {
         ),
       },
     ],
-    [],
+    [roleOptions, roleOptionsQuery.isLoading],
   );
 
   const formSchema = useMemo<FormDialogField[]>(
@@ -174,13 +230,6 @@ export function UserManagementPage(): JSX.Element {
         required: true,
         placeholder: "请输入邮箱",
         rules: [{ type: "email", message: "请输入合法邮箱" }],
-      },
-      {
-        type: "select",
-        key: "role",
-        label: "角色",
-        required: true,
-        options: userRoleOptions,
       },
       {
         type: "select",
@@ -246,9 +295,9 @@ export function UserManagementPage(): JSX.Element {
       },
       {
         title: "角色",
-        dataIndex: "role",
-        key: "role",
-        render: (_, record) => <UserRoleTag role={record.role} />,
+        dataIndex: "roles",
+        key: "roles",
+        render: (_, record) => <UserRoleTags roles={record.roles} />,
       },
       {
         title: "状态",
@@ -330,51 +379,74 @@ export function UserManagementPage(): JSX.Element {
                 管理 Hify 内部账号、角色和启用状态。
               </Typography.Paragraph>
             </div>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreateDialog}
-            >
-              新增用户
-            </Button>
+            {canManageUsers ? (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreateDialog}
+              >
+                新增用户
+              </Button>
+            ) : null}
           </div>
         }
-        tableActions={(record) => (
-          <Space size={4}>
-            <Tooltip title="编辑">
-              <Button
-                type="link"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => openEditDialog(record)}
-              />
-            </Tooltip>
-            <Tooltip title={record.isActive ? "禁用" : "启用"}>
-              <Button
-                type="link"
-                size="small"
-                icon={<PoweroffOutlined />}
-                onClick={() => confirmToggleUserStatus(record)}
-              />
-            </Tooltip>
-            <Tooltip title="重置密码">
-              <Button
-                type="link"
-                size="small"
-                icon={<KeyOutlined />}
-                onClick={() => setResetPasswordUser(record)}
-              />
-            </Tooltip>
-            <Tooltip title="删除">
-              <Button
-                type="link"
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => confirmDeleteUser(record)}
-              />
-            </Tooltip>
-          </Space>
-        )}
+        tableActions={(record) => {
+          if (!canManageUsers && !canManageRbac) {
+            return null;
+          }
+          return (
+            <Space size={4}>
+              {canManageUsers ? (
+                <>
+                  <Tooltip title="编辑">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => openEditDialog(record)}
+                    />
+                  </Tooltip>
+                  <Tooltip title={record.isActive ? "禁用" : "启用"}>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<PoweroffOutlined />}
+                      onClick={() => confirmToggleUserStatus(record)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="重置密码">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<KeyOutlined />}
+                      onClick={() => setResetPasswordUser(record)}
+                    />
+                  </Tooltip>
+                </>
+              ) : null}
+              {canManageRbac ? (
+                <Tooltip title="分配角色">
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<SafetyCertificateOutlined />}
+                    onClick={() => setAssignRoleUser(record)}
+                  />
+                </Tooltip>
+              ) : null}
+              {canManageUsers ? (
+                <Tooltip title="删除">
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => confirmDeleteUser(record)}
+                  />
+                </Tooltip>
+              ) : null}
+            </Space>
+          );
+        }}
       />
 
       {dialogOpen ? (
@@ -439,6 +511,62 @@ export function UserManagementPage(): JSX.Element {
               queryKey: userManagementQueryKeys.all,
             });
             setResetPasswordUser(null);
+            tableRef.current?.reload();
+          }}
+        />
+      ) : null}
+
+      {assignRoleUser != null ? (
+        <FormDialog<UserRoleFormValues>
+          open={assignRoleUser != null}
+          mode="create"
+          width={560}
+          title={`分配角色：${assignRoleUser.username}`}
+          schema={[
+            {
+              type: "custom",
+              key: "roleIds",
+              label: "角色",
+              required: true,
+              colProps: { xs: 24, md: 24 },
+              render: ({ value, onChange }) => (
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="请选择角色"
+                  loading={
+                    roleOptionsQuery.isLoading || userRolesQuery.isLoading
+                  }
+                  options={roleOptions}
+                  value={(value as number[] | undefined) ?? []}
+                  onChange={(nextValue) => onChange(nextValue)}
+                />
+              ),
+            },
+          ]}
+          initialValues={{
+            roleIds:
+              userRolesQuery.data?.roles.map((role) => role.id) ??
+              assignRoleUser.roles.map((role) => role.id),
+          }}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAssignRoleUser(null);
+            }
+          }}
+          primaryAction={{
+            text: "保存角色",
+            successMessage: "用户角色已更新",
+            api: async (values) =>
+              assignRolesMutation.mutateAsync(values as UserRoleFormValues),
+          }}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: userManagementQueryKeys.all,
+            });
+            setAssignRoleUser(null);
             tableRef.current?.reload();
           }}
         />

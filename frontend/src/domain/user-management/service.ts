@@ -16,7 +16,6 @@ function buildCreatePayload(values: UserFormValues) {
     username: values.username.trim(),
     email: values.email.trim(),
     password: values.password,
-    role: values.role,
     isActive: values.isActive,
   };
 }
@@ -25,7 +24,6 @@ function buildUpdatePayload(values: UserFormValues) {
   return {
     username: values.username.trim(),
     email: values.email.trim(),
-    role: values.role,
     isActive: values.isActive,
   };
 }
