@@ -54,7 +54,7 @@ erDiagram
 说明：
 
 - `provider_models` 已由 Provider 管理模块创建。
-- `tools` 和 `knowledge_bases` 目前还没有数据库迁移建表，因此本期绑定表只保存 ID，不加跨模块外键。
+- `tools` 和 `knowledge_bases` 已由各自模块创建。Agent 绑定表仍只保存 ID，不加跨模块外键，以降低模块迁移耦合；存在性和状态校验由服务层承担。
 
 ## 4. 表设计
 

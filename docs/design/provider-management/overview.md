@@ -130,10 +130,16 @@ LiteLLM 职责：
 - Alembic 迁移
 - Provider 聚合 CRUD 接口
 - 应用层密钥加密
+- 前端模型提供商管理单页面
+- Provider 连接测试接口
+- Provider 调用测试接口
+- LiteLLM 运行时配置解析
+- Provider/Model 与 Agent 配置、Conversation 运行链路的基础联调
+- 后端 Provider 接口测试
 
 待继续：
 
-- 前端单页面
-- 健康检查执行接口
-- LiteLLM 真正调用适配
-- 更完整的集成测试
+- 供应商模型自动同步
+- 多 Provider fallback 与路由策略
+- 模型级健康状态
+- 更完整的真实供应商 E2E 覆盖

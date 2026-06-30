@@ -380,7 +380,7 @@ Agent 配置接口以“聚合读写”为核心：
 - 同一个 Agent 下活跃 `toolId` 不可重复。
 - `toolId` 必须为正整数。
 - `sortOrder` 必须大于等于 `0`。
-- 当前数据库不加 `tools.id` 外键，但服务层应校验工具是否存在或在工具模块未完成时标记为暂缓校验。
+- 当前数据库不加 `tools.id` 外键；服务层会校验启用工具必须存在且状态为 `enabled`。
 
 ### 3.6 知识库绑定
 
@@ -403,7 +403,7 @@ Agent 配置接口以“聚合读写”为核心：
 - 同一个 Agent 下活跃 `knowledgeBaseId` 不可重复。
 - `knowledgeBaseId` 必须为正整数。
 - `sortOrder` 必须大于等于 `0`。
-- 当前数据库不加 `knowledge_bases.id` 外键，但服务层应校验知识库是否存在或在知识库模块未完成时标记为暂缓校验。
+- 当前数据库不加 `knowledge_bases.id` 外键；知识库模块已提供选项接口和会话检索能力，Agent 保存时仍未对知识库绑定做强存在性校验。
 
 ## 4. 错误语义
 
@@ -500,4 +500,5 @@ export const agentConfigurationApi = {
 
 - 一期允许 `orchestrationMode = workflow` 的草稿被创建，但在 Workflow 模块完成前不允许启用。
 - 启用 Agent 时 `systemPrompt` 不强制必填，只做前端提示。
-- 工具和知识库模块未完成时，服务层暂缓强存在性校验，但保留错误码和接口语义。
+- 工具模块已完成，服务层会校验启用工具必须存在且为 `enabled`。
+- 知识库模块已完成基础能力，但 Agent 保存时仍未对知识库绑定做强存在性校验；Conversation 运行时会按绑定知识库执行检索或返回运行错误。

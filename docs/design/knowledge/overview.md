@@ -2,10 +2,9 @@
 
 ## 1. 背景
 
-Hify 的核心链路是“创建 Agent → 配置工具/知识 → 对话使用”。当前仓库
-已经有 `backend/app/knowledge` 骨架、Embedding 客户端、PGVector 查询 helper，
-以及 Agent 侧的 `agent_knowledge_bindings` 预留表，但还没有完整的知识库管理、
-文档上传、切片入库、检索测试和会话注入闭环。
+Hify 的核心链路是“创建 Agent → 配置工具/知识 → 对话使用”。当前仓库已经
+落地知识库管理、文档上传、切片入库、Embedding、PGVector 检索测试，以及
+Conversation 根据 Agent 绑定知识库执行 RAG 注入的基础闭环。
 
 本模块目标是让用户把团队文档沉淀为可检索知识，并在 Agent 会话中自动引入
 相关片段。
@@ -100,9 +99,6 @@ RAG 检索结果需要控制：
 - Gate 1 产品方向确认：采用 PostgreSQL + PGVector 一体化方案。
 - 前端方向确认：采用知识库工作台原型，不做传统 Table 主页面。
 - 原型文件：`docs/design/knowledge/prototype.html`。
-
-待继续：
-
 - Gate 2 数据库设计确认。
 - Alembic 迁移。
 - Gate 3 API 合约设计。
@@ -110,4 +106,13 @@ RAG 检索结果需要控制：
 - 文档解析、切片、embedding 和检索闭环。
 - 前端知识库工作台实现。
 - 会话 RAG 注入。
-- 接口测试和 E2E 验证。
+- 知识库选项接口，供 Agent 配置页选择绑定。
+- 接口测试覆盖知识库创建、文档上传和文档列表。
+
+待继续：
+
+- 补充检索测试、RAG 注入和知识库选项接口的自动化覆盖。
+- 完整浏览器 E2E 验证。
+- 真实文件类型覆盖扩展，尤其是 PDF/DOCX 的复杂版式抽取质量。
+- 检索命中详情在会话日志中的排查视图。
+- RAG 召回质量调优，例如重排、混合检索、引用展示增强。

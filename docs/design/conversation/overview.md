@@ -32,12 +32,15 @@ Hify 的核心链路是“创建 Agent → 配置工具/知识 → 对话使用�
 一期不做：
 
 - Workflow 运行。
-- 工具调用闭环。
-- RAG 检索闭环。
 - 附件、多模态、语音输入。
 - 多用户协作会话。
 - 跨用户会话审计。
 - 每个 token 分片落库。
+
+说明：
+
+- 工具调用闭环已在后续 `agent-tool-runtime` 阶段补齐，当前支持单轮 HTTP 工具调用。
+- RAG 检索闭环已在知识库模块推进后接入，当前 Conversation 会根据 Agent 绑定知识库执行检索并注入上下文。
 
 ## 3. 核心设计原则
 
@@ -82,14 +85,22 @@ SSE chunk 面向实时体验，数据库保存最终结果：
 
 - Gate 1 产品范围确认：一期直接做 SSE + 真实 LLM 调用。
 - Gate 2 数据库设计文档。
-- Conversation Alembic 迁移草案。
+- Conversation Alembic 迁移。
 - Gate 3 API 合约文档。
 - Gate 3.5 前端页面拆分文档，明确 `/chat` 和 `/conversations` 两个菜单。
-
-待继续：
-
 - ORM、schema、service、router 实现。
 - LiteLLM 流式 executor。
 - 后端接口测试。
 - 前端会话 domain 和页面。
+- 登录用户会话隔离。
+- 会话消息持久化与 SSE 输出。
+- Agent 运行预览接口。
+- 工具调用 SSE 事件与消息摘要展示。
+- 知识库检索上下文注入。
+
+待继续：
+
 - 真实 E2E 验证。
+- 外部系统调用接口与发布入口。
+- 会话日志的深度排查视图，例如 run 详情、工具日志详情、RAG 命中详情。
+- Workflow Agent 运行。

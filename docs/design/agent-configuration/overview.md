@@ -100,9 +100,10 @@ Agent 模块只负责保存和输出配置。
 未完成或暂缓：
 
 - in-app browser 插件不可用，未完成可视化浏览器点选验证。
-- 工具和知识库模块未完成，绑定关系暂缓强存在性校验。
+- 工具模块已完成，Agent 保存时会校验启用工具必须存在且为 `enabled`。
+- 知识库模块已完成基础能力，但 Agent 保存时仍未对知识库绑定做强存在性校验。
 - Workflow 模块未完成，Workflow Agent 只能保存草稿。
-- 临时 E2E Agent 记录已禁用但未删除，删除需用户确认。
+- 临时 E2E Agent 记录已按确认软删除。
 
 ## 5. 后续扩展方向
 
@@ -116,9 +117,8 @@ Workflow 编排建议独立模块化：
 
 Agent 可通过 `workflow_ref_json` 或后续结构化字段关联 Workflow。
 
-Agent 运行建议继续从 `conversation` 开始扩展：
+Agent 运行已经由 `conversation` 承接，后续扩展仍应保持该边界：
 
-- 新增 Agent 对话启动接口。
 - conversation 加载 Agent 配置。
 - conversation 解析 `orchestration_mode`。
 - 普通 Agent 走 LLM + 工具 + 知识库流程。

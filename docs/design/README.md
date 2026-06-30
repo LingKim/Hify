@@ -23,5 +23,7 @@
 - `user-management/`：内部账号管理模块
 - `conversation/`：会话与对话运行模块
 - `agent-configuration/`：Agent 配置模块
+- `knowledge/`：知识库、文档处理、检索测试与 RAG 注入模块
+- `tool/`：HTTP 工具管理、OpenAPI 导入与测试执行模块
 - `agent-tool-runtime/`：Agent 工具绑定到对话运行时的调用闭环
 - `mvp-roadmap/`：MVP 功能清单对应的整体开发计划
